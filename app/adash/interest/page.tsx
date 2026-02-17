@@ -21,7 +21,7 @@ export default function InterestManagementPage() {
       const result = await applyDailyInterestToAllUsers()
       setResults(result)
       
-      if (result.success) {
+      if (result.success && result.results) {
         alert(`Interest applied successfully!\n\nUsers processed: ${result.results.usersProcessed}\nTotal interest added: $${result.results.totalInterestAdded.toFixed(2)}`)
         loadTotalInterest()
       } else {
