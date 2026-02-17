@@ -1,23 +1,34 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useAuth } from '@/hooks/useAuth'
+import { createDepositTransaction, getUserTransactions } from '@/lib/transactions'
+import { sendDepositPendingEmail, sendAdminDepositNotification } from '@/lib/email'
+import { usdToCrypto, formatCryptoAmount, getCryptoPrice } from '@/lib/prices'
 
 export default function CryptoDetailPage() {
   const params = useParams()
   const searchParams = useSearchParams()
   const coinId = params.id as string
   const type = searchParams.get('type') || 'flexible'
+  const { user, userData } = useAuth()
 
   const [showDepositModal, setShowDepositModal] = useState(false)
   const [showWithdrawModal, setShowWithdrawModal] = useState(false)
   const [selectedNetwork, setSelectedNetwork] = useState<string>('trx')
   const [depositStep, setDepositStep] = useState(1)
   const [depositAmount, setDepositAmount] = useState('')
+  const [cryptoAmount, setCryptoAmount] = useState(0)
   const [trackingPhrase, setTrackingPhrase] = useState('')
   const [userPhraseInput, setUserPhraseInput] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+  const [loadingPrice, setLoadingPrice] = useState(false)
+  const [userTransactions, setUserTransactions] = useState<any[]>([])
+  const [loadingTransactions, setLoadingTransactions] = useState(true)
 
   const flexibleRates: { [key: string]: number } = {
     btc: 9,
@@ -75,7 +86,7 @@ export default function CryptoDetailPage() {
     trx: 'TMtJ4FvSxVTKQdRA5JjKXFUGbTMxVKuqVv',
     sol: '7sqqjduEXcUiT7q7g2A7Vj4RE8Leie9LXGrEEJ6g13C6',
     xrp: 'rpcaghtzYgG17BSzHSMWEWzCHEbQfHFm1B',
-    ltc: 'LTC1234567890abcdefghijklmnopqrstuv', // Placeholder
+    ltc: 'ltc1qjzvv6mczt2wf6h7mhm6m22m975wxwecrpmc5zw',
     usdt: {
       trx: 'TMtJ4FvSxVTKQdRA5JjKXFUGbTMxVKuqVv',
       eth: '0x84Eb11591dc00fE6aA4793f91B709f0a370d8c2b',
@@ -136,22 +147,37 @@ export default function CryptoDetailPage() {
     
     // For crypto URIs with amount
     if (amount && parseFloat(amount) > 0) {
-      const coinUpper = coinId.toUpperCase()
-      // Format varies by coin type
-      if (coinId === 'btc') {
+      // Handle multi-network tokens (USDT, USDC) based on selected network
+      if ((coinId === 'usdt' || coinId === 'usdc') && network) {
+        if (network === 'eth') {
+          // Ethereum network - use ERC20 format
+          qrData = `ethereum:${address}?value=${amount}`
+        } else if (network === 'trx') {
+          // Tron network - use TRC20 format
+          qrData = `tron:${address}?amount=${amount}`
+        } else if (network === 'sol') {
+          // Solana network
+          qrData = `solana:${address}?amount=${amount}`
+        }
+      } 
+      // Handle single-network tokens
+      else if (coinId === 'btc') {
         qrData = `bitcoin:${address}?amount=${amount}`
-      } else if (coinId === 'eth' || coinId === 'bnb' || coinId === 'usdt' || coinId === 'usdc') {
+      } else if (coinId === 'eth') {
         qrData = `ethereum:${address}?value=${amount}`
+      } else if (coinId === 'bnb') {
+        qrData = `bnb:${address}?amount=${amount}`
       } else if (coinId === 'xrp') {
         qrData = `ripple:${address}?amount=${amount}`
+      } else if (coinId === 'trx') {
+        qrData = `tron:${address}?amount=${amount}`
+      } else if (coinId === 'sol') {
+        qrData = `solana:${address}?amount=${amount}`
+      } else if (coinId === 'ltc') {
+        qrData = `litecoin:${address}?amount=${amount}`
       } else {
-        // Generic format for other coins
+        // Fallback for any other coins
         qrData = `${coinId}:${address}?amount=${amount}`
-      }
-      
-      // Add network info if available
-      if (network) {
-        qrData += `&network=${network.toUpperCase()}`
       }
     }
     
@@ -164,41 +190,59 @@ export default function CryptoDetailPage() {
   const coinLogo = coinLogos[coinId] || '/BTC.svg'
   const depositAddress = getDepositAddress()
 
-  // Mock transaction data
-  const transactions = [
-    {
-      id: 1,
-      type: 'deposit',
-      amount: '0.5',
-      usdValue: '$45,500.00',
-      date: '2026-02-10 14:32',
-      status: 'completed',
-    },
-    {
-      id: 2,
-      type: 'interest',
-      amount: '0.0012',
-      usdValue: '$109.20',
-      date: '2026-02-10 00:00',
-      status: 'completed',
-    },
-    {
-      id: 3,
-      type: 'deposit',
-      amount: '0.25',
-      usdValue: '$22,750.00',
-      date: '2026-02-08 09:15',
-      status: 'completed',
-    },
-    {
-      id: 4,
-      type: 'interest',
-      amount: '0.0006',
-      usdValue: '$54.60',
-      date: '2026-02-09 00:00',
-      status: 'completed',
-    },
-  ]
+  // Get user balance for this coin
+  const getUserBalance = () => {
+    if (!userData?.balances) return { amount: 0, usdValue: 0, totalEarned: 0 }
+    
+    const balanceKey = `${coinId.toUpperCase()}_${type}`
+    const balance = userData.balances[balanceKey]
+    
+    return balance || { amount: 0, usdValue: 0, totalEarned: 0 }
+  }
+
+  const userBalance = getUserBalance()
+
+  // Load user transactions
+  useEffect(() => {
+    const loadTransactions = async () => {
+      if (!user) return
+      
+      setLoadingTransactions(true)
+      const result = await getUserTransactions(user.uid)
+      if (result.success) {
+        // Filter transactions for this coin
+        const coinTransactions = result.transactions.filter(
+          (t: any) => t.coin.toLowerCase() === coinId.toLowerCase()
+        )
+        setUserTransactions(coinTransactions)
+      }
+      setLoadingTransactions(false)
+    }
+    
+    loadTransactions()
+  }, [user, coinId])
+
+  // Calculate crypto amount when USD amount changes
+  useEffect(() => {
+    const calculateCryptoAmount = async () => {
+      if (!depositAmount || parseFloat(depositAmount) <= 0) {
+        setCryptoAmount(0)
+        return
+      }
+      
+      setLoadingPrice(true)
+      try {
+        const amount = await usdToCrypto(parseFloat(depositAmount), coinId)
+        setCryptoAmount(amount)
+      } catch (error) {
+        console.error('Error calculating crypto amount:', error)
+      } finally {
+        setLoadingPrice(false)
+      }
+    }
+    
+    calculateCryptoAmount()
+  }, [depositAmount, coinId])
 
   return (
     <div className="min-h-screen p-8">
@@ -259,18 +303,26 @@ export default function CryptoDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <div>
               <div className="text-gray-400 text-sm mb-1">Your Balance</div>
-              <div className="text-white text-2xl font-medium">0.75 {coinId.toUpperCase()}</div>
-              <div className="text-gray-400 text-sm">$68,250.00</div>
+              <div className="text-white text-2xl font-medium">
+                {userBalance.amount > 0 ? formatCryptoAmount(userBalance.amount, coinId) : '0'} {coinId.toUpperCase()}
+              </div>
+              <div className="text-gray-400 text-sm">
+                ${userBalance.usdValue.toFixed(2)}
+              </div>
             </div>
             <div>
               <div className="text-gray-400 text-sm mb-1">Total Earned</div>
-              <div className="text-teal-400 text-2xl font-medium">0.0018 {coinId.toUpperCase()}</div>
-              <div className="text-gray-400 text-sm">$163.80</div>
+              <div className="text-teal-400 text-2xl font-medium">
+                ${(userBalance.totalEarned || 0).toFixed(2)}
+              </div>
+              <div className="text-gray-400 text-sm">Interest paid out daily</div>
             </div>
             <div>
               <div className="text-gray-400 text-sm mb-1">Est. Daily Interest</div>
-              <div className="text-white text-2xl font-medium">0.0002 {coinId.toUpperCase()}</div>
-              <div className="text-gray-400 text-sm">$18.20</div>
+              <div className="text-white text-2xl font-medium">
+                ${(userBalance.usdValue * (rate / 100 / 365)).toFixed(2)}
+              </div>
+              <div className="text-gray-400 text-sm">Per day at {rate}% APY</div>
             </div>
           </div>
 
@@ -339,52 +391,69 @@ export default function CryptoDetailPage() {
           </div>
 
           <div className="space-y-3">
-            {transactions.map((tx) => (
-              <div
-                key={tx.id}
-                className="flex items-center justify-between p-4 bg-gray-800/30 border border-gray-700 rounded-lg hover:border-gray-600 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      tx.type === 'deposit'
-                        ? 'bg-teal-400/10 text-teal-400'
-                        : 'bg-blue-400/10 text-blue-400'
-                    }`}
-                  >
-                    {tx.type === 'deposit' ? (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 4v16m8-8H4"
-                        />
-                      </svg>
-                    ) : (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                        />
-                      </svg>
-                    )}
-                  </div>
-                  <div>
-                    <div className="text-white font-medium capitalize">{tx.type}</div>
-                    <div className="text-gray-400 text-sm">{tx.date}</div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-white font-medium">
-                    {tx.type === 'deposit' ? '+' : '+'}{tx.amount} {coinId.toUpperCase()}
-                  </div>
-                  <div className="text-gray-400 text-sm">{tx.usdValue}</div>
-                </div>
+            {loadingTransactions ? (
+              <div className="text-center py-8">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-teal-400 mb-2"></div>
+                <p className="text-gray-400 text-sm">Loading transactions...</p>
               </div>
-            ))}
+            ) : userTransactions.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-400">No transactions yet</p>
+                <p className="text-gray-500 text-sm mt-1">Make your first deposit to get started</p>
+              </div>
+            ) : (
+              userTransactions.map((tx) => (
+                <div
+                  key={tx.id}
+                  className="flex items-center justify-between p-4 bg-gray-800/30 border border-gray-700 rounded-lg hover:border-gray-600 transition-colors"
+                >
+                  <div className="flex items-center gap-4">
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        tx.type === 'deposit'
+                          ? 'bg-teal-400/10 text-teal-400'
+                          : 'bg-blue-400/10 text-blue-400'
+                      }`}
+                    >
+                      {tx.type === 'deposit' ? (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 4v16m8-8H4"
+                          />
+                        </svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                    <div>
+                      <div className="text-white font-medium capitalize">{tx.type}</div>
+                      <div className="text-gray-400 text-sm">{new Date(tx.createdAt).toLocaleString()}</div>
+                      {tx.status === 'pending' && (
+                        <span className="inline-block mt-1 px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded">
+                          Pending Confirmation
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-white font-medium">
+                      ${tx.usdValue.toFixed(2)}
+                    </div>
+                    <div className="text-gray-400 text-sm">{tx.coin}</div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -397,7 +466,7 @@ export default function CryptoDetailPage() {
               <h3 className="text-2xl font-medium text-white">
                 Deposit {coinId.toUpperCase()} 
                 <span className="text-gray-500 text-base ml-2">
-                  (Step {depositStep} of 3)
+                  (Step {depositStep} of 2)
                 </span>
               </h3>
               <button
@@ -428,12 +497,6 @@ export default function CryptoDetailPage() {
                   depositStep >= 2 ? 'bg-teal-400 text-primary' : 'bg-gray-700 text-gray-400'
                 }`}>
                   2
-                </div>
-                <div className={`w-12 h-0.5 ${depositStep >= 3 ? 'bg-teal-400' : 'bg-gray-700'}`}></div>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  depositStep >= 3 ? 'bg-teal-400 text-primary' : 'bg-gray-700 text-gray-400'
-                }`}>
-                  3
                 </div>
               </div>
             </div>
@@ -515,31 +578,37 @@ export default function CryptoDetailPage() {
                     disabled={!depositAmount || parseFloat(depositAmount) < 50}
                     className="w-full bg-teal-400 text-primary py-3 rounded-lg font-semibold hover:bg-teal-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Continue to QR Code
+                    Continue
                   </button>
                 </>
               )}
 
-              {/* Step 2: QR Code Display */}
+              {/* Step 2: Confirm Deposit with Tracking Phrase */}
               {depositStep === 2 && (
                 <>
                   <div className="text-center mb-4">
-                    <h4 className="text-lg font-medium text-white mb-1">Scan QR Code to Deposit</h4>
+                    <h4 className="text-lg font-medium text-white mb-1">Confirm Your Deposit</h4>
                     <p className="text-sm text-gray-400">
                       Amount: ${depositAmount} USD {hasMultipleNetworks() && `• Network: ${selectedNetwork.toUpperCase()}`}
                     </p>
+                  </div>
+
+                  {/* Deposit Amount Summary */}
+                  <div className="bg-teal-400/10 border border-teal-400/30 rounded-lg p-4">
+                    <div className="text-center">
+                      <div className="text-gray-400 text-sm mb-1">You need to send approximately:</div>
+                      <div className="text-teal-400 text-2xl font-bold mb-1">
+                        {loadingPrice ? '...' : formatCryptoAmount(cryptoAmount, coinId)} {coinId.toUpperCase()}
+                      </div>
+                      <div className="text-gray-400 text-sm">≈ ${depositAmount} USD</div>
+                    </div>
                   </div>
 
                   {/* Warning Box */}
                   <div className="bg-gray-800/50 border border-gray-600 rounded-lg p-4">
                     <div className="flex gap-3">
                       <svg className="w-5 h-5 text-gray-300 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       <div>
                         <p className="text-sm text-gray-300">
@@ -556,7 +625,7 @@ export default function CryptoDetailPage() {
                   <div className="bg-white rounded-lg p-6 text-center">
                     <div className="mb-4">
                       <img
-                        src={getQRCodeUrl(depositAddress, depositAmount, hasMultipleNetworks() ? selectedNetwork : undefined)}
+                        src={getQRCodeUrl(depositAddress, formatCryptoAmount(cryptoAmount, coinId), hasMultipleNetworks() ? selectedNetwork : undefined)}
                         alt="Deposit QR Code"
                         width="250"
                         height="250"
@@ -565,48 +634,17 @@ export default function CryptoDetailPage() {
                     </div>
                     <div className="text-gray-600 text-xs font-mono break-all mb-3">{depositAddress}</div>
                     <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(depositAddress)
-                      }}
+                      onClick={() => navigator.clipboard.writeText(depositAddress)}
                       className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors font-medium"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                        />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
                       Copy Address
                     </button>
                   </div>
 
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setDepositStep(1)}
-                      className="flex-1 bg-gray-700 text-white py-3 rounded-lg font-semibold hover:bg-gray-600 transition-all"
-                    >
-                      Back
-                    </button>
-                    <button
-                      onClick={() => setDepositStep(3)}
-                      className="flex-1 bg-teal-400 text-primary py-3 rounded-lg font-semibold hover:bg-teal-300 transition-all"
-                    >
-                      I've Sent the Deposit
-                    </button>
-                  </div>
-                </>
-              )}
-
-              {/* Step 3: Tracking Phrase Verification */}
-              {depositStep === 3 && (
-                <>
-                  <div className="text-center mb-4">
-                    <h4 className="text-lg font-medium text-white mb-1">Verify Your Transaction</h4>
-                    <p className="text-sm text-gray-400">Enter the tracking phrase to confirm your deposit</p>
-                  </div>
-
+                  {/* Tracking Phrase */}
                   <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
                     <div className="text-sm text-gray-400 mb-2">Your tracking phrase (case sensitive):</div>
                     <div className="bg-teal-400/10 border border-teal-400/30 rounded-lg p-4 mb-4">
@@ -615,12 +653,15 @@ export default function CryptoDetailPage() {
                       </div>
                     </div>
                     <p className="text-xs text-gray-500 text-center">
-                      Copy this phrase exactly as shown. It will be used to track your transaction.
+                      After sending your deposit, enter this phrase below to confirm.
                     </p>
                   </div>
 
+                  {/* Tracking Phrase Input */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Enter Tracking Phrase</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      I confirm I have sent the deposit - Enter tracking phrase:
+                    </label>
                     <input
                       type="text"
                       value={userPhraseInput}
@@ -641,29 +682,103 @@ export default function CryptoDetailPage() {
                     )}
                   </div>
 
-                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-                    <p className="text-sm text-blue-400">
-                      Once you submit, your deposit will be tracked and processed. You'll receive a confirmation once it's verified on the blockchain.
-                    </p>
-                  </div>
+                  {submitError && (
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+                      <p className="text-sm text-red-400">{submitError}</p>
+                    </div>
+                  )}
 
                   <div className="flex gap-3">
                     <button
-                      onClick={() => setDepositStep(2)}
+                      onClick={() => setDepositStep(1)}
                       className="flex-1 bg-gray-700 text-white py-3 rounded-lg font-semibold hover:bg-gray-600 transition-all"
                     >
                       Back
                     </button>
                     <button
-                      onClick={() => {
-                        // TODO: Firebase submission will go here
-                        alert(`Deposit submitted!\nAmount: $${depositAmount}\nCoin: ${coinId.toUpperCase()}\nNetwork: ${hasMultipleNetworks() ? selectedNetwork.toUpperCase() : 'N/A'}\nTracking: ${trackingPhrase}`)
-                        setShowDepositModal(false)
+                      onClick={async () => {
+                        if (!user || !userData) {
+                          setSubmitError('User not authenticated')
+                          return
+                        }
+
+                        setSubmitting(true)
+                        setSubmitError('')
+
+                        try {
+                          // Create transaction in Firebase with calculated crypto amount
+                          const result = await createDepositTransaction(
+                            user.uid,
+                            user.email || '',
+                            coinId,
+                            hasMultipleNetworks() ? selectedNetwork : undefined,
+                            cryptoAmount, // Actual crypto amount based on current price
+                            parseFloat(depositAmount),
+                            trackingPhrase,
+                            depositAddress,
+                            type as 'flexible' | 'fixed-term'
+                          )
+
+                          if (result.success) {
+                            // Send notification emails
+                            const userName = `${userData.firstName} ${userData.lastName}`
+                            
+                            // Send user notification
+                            await sendDepositPendingEmail(
+                              user.email || '',
+                              userName,
+                              coinId.toUpperCase(),
+                              parseFloat(depositAmount),
+                              trackingPhrase
+                            )
+
+                            // Send admin notifications
+                            const adminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(',') || []
+                            await sendAdminDepositNotification(
+                              adminEmails,
+                              user.email || '',
+                              coinId.toUpperCase(),
+                              parseFloat(depositAmount),
+                              parseFloat(depositAmount),
+                              trackingPhrase,
+                              result.transactionId || ''
+                            )
+
+                            // Success! Close modal and reset
+                            alert('Deposit submitted successfully! You will receive an email confirmation shortly.')
+                            setShowDepositModal(false)
+                            setDepositStep(1)
+                            setDepositAmount('')
+                            setUserPhraseInput('')
+                            setCryptoAmount(0)
+                            // Reload transactions
+                            const txResult = await getUserTransactions(user.uid)
+                            if (txResult.success) {
+                              const coinTransactions = txResult.transactions.filter(
+                                (t: any) => t.coin.toLowerCase() === coinId.toLowerCase()
+                              )
+                              setUserTransactions(coinTransactions)
+                            }
+                          } else {
+                            setSubmitError(result.error || 'Failed to submit deposit')
+                          }
+                        } catch (error: any) {
+                          setSubmitError(error.message || 'An error occurred')
+                        } finally {
+                          setSubmitting(false)
+                        }
                       }}
-                      disabled={userPhraseInput !== trackingPhrase}
-                      className="flex-1 bg-teal-400 text-primary py-3 rounded-lg font-semibold hover:bg-teal-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={userPhraseInput !== trackingPhrase || submitting}
+                      className="flex-1 bg-teal-400 text-primary py-3 rounded-lg font-semibold hover:bg-teal-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                     >
-                      Deposit Sent
+                      {submitting ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-primary mr-2"></div>
+                          Submitting...
+                        </>
+                      ) : (
+                        'Deposit Sent'
+                      )}
                     </button>
                   </div>
                 </>

@@ -1,11 +1,69 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useAuth } from '@/hooks/useAuth'
+import { getMultiplePrices } from '@/lib/prices'
+import { getUserTransactions } from '@/lib/transactions'
 
 export default function DashboardPage() {
+  const { user, userData } = useAuth()
   const [activeTab, setActiveTab] = useState<'flexible' | 'fixed'>('flexible')
+  const [totalBalance, setTotalBalance] = useState(0)
+  const [totalEarnings, setTotalEarnings] = useState(0)
+  const [loadingBalances, setLoadingBalances] = useState(true)
+  const [userTransactions, setUserTransactions] = useState<any[]>([])
+  const [loadingTransactions, setLoadingTransactions] = useState(true)
+
+  // Calculate total balances
+  useEffect(() => {
+    const calculateTotals = async () => {
+      if (!userData?.balances) {
+        setLoadingBalances(false)
+        return
+      }
+
+      let flexibleTotal = 0
+      let fixedTotal = 0
+      let earningsTotal = 0
+
+      Object.entries(userData.balances).forEach(([key, balance]: [string, any]) => {
+        const [coin, savingsType] = key.split('_')
+        
+        if (savingsType === 'flexible') {
+          flexibleTotal += balance.usdValue || 0
+        } else {
+          fixedTotal += balance.usdValue || 0
+        }
+        
+        earningsTotal += balance.totalEarned || 0
+      })
+
+      setTotalBalance(flexibleTotal + fixedTotal)
+      setTotalEarnings(earningsTotal)
+      setLoadingBalances(false)
+    }
+
+    calculateTotals()
+  }, [userData])
+
+  // Load user transactions
+  useEffect(() => {
+    const loadTransactions = async () => {
+      if (!user) return
+      
+      setLoadingTransactions(true)
+      const result = await getUserTransactions(user.uid)
+      if (result.success) {
+        // Get most recent 10 transactions
+        setUserTransactions(result.transactions.slice(0, 10))
+      }
+      setLoadingTransactions(false)
+    }
+    
+    loadTransactions()
+  }, [user])
 
   const flexibleRates = {
     BTC: 9,
@@ -56,10 +114,6 @@ export default function DashboardPage() {
   }
 
   const rates = activeTab === 'flexible' ? flexibleRates : fixedRates
-
-  // Mock balance data
-  const totalBalance = '$91,234.56'
-  const dailyEarnings = '+$124.32'
 
   return (
     <div className="min-h-screen p-8">
@@ -118,7 +172,9 @@ export default function DashboardPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
             </div>
-            <div className="text-3xl font-medium text-teal-400">{dailyEarnings}</div>
+            <div className="text-3xl font-medium text-teal-400">
+              {loadingBalances ? '...' : `+$${(totalBalance * 0.12 / 365).toFixed(2)}`}
+            </div>
           </div>
 
           <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
@@ -200,29 +256,97 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Quick Stats */}
+        {/* Recent Transactions */}
         <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-          <h3 className="text-xl font-medium text-white mb-4">Quick Stats</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <div className="text-gray-400 text-sm mb-1">Total Assets</div>
-              <div className="text-white text-xl font-medium">9</div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-sm mb-1">This Month</div>
-              <div className="text-teal-400 text-xl font-medium">+$3,742.12</div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-sm mb-1">APY (Avg)</div>
-              <div className="text-white text-xl font-medium">
-                {activeTab === 'flexible' ? '10.6%' : '14.8%'}
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-medium text-white">Recent Transactions</h3>
+            <div className="flex items-center gap-2">
+              <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                userTransactions.filter(t => t.status === 'pending').length > 0
+                  ? 'bg-yellow-500/20 text-yellow-400'
+                  : 'bg-gray-700 text-gray-400'
+              }`}>
+                {userTransactions.filter(t => t.status === 'pending').length} Pending
               </div>
             </div>
-            <div>
-              <div className="text-gray-400 text-sm mb-1">Est. Yearly</div>
-              <div className="text-white text-xl font-medium">$48,200</div>
-            </div>
           </div>
+
+          <div className="space-y-3">
+            {loadingTransactions ? (
+              <div className="text-center py-8">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-teal-400 mb-2"></div>
+                <p className="text-gray-400 text-sm">Loading transactions...</p>
+              </div>
+            ) : userTransactions.length === 0 ? (
+              <div className="text-center py-8">
+                <svg className="w-16 h-16 text-gray-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                <p className="text-gray-400 mb-1">No transactions yet</p>
+                <p className="text-gray-500 text-sm">Make your first deposit to get started</p>
+              </div>
+            ) : (
+              userTransactions.map((tx) => (
+                <div
+                  key={tx.id}
+                  className="flex items-center justify-between p-4 bg-gray-800/30 border border-gray-700 rounded-xl hover:border-gray-600 transition-colors"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 relative flex-shrink-0">
+                      <Image
+                        src={coinLogos[tx.coin] || '/BTC.svg'}
+                        alt={tx.coin}
+                        width={40}
+                        height={40}
+                        className="object-contain"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-white font-medium capitalize">{tx.type}</div>
+                        {tx.status === 'pending' && (
+                          <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full">
+                            Pending
+                          </span>
+                        )}
+                        {tx.status === 'confirmed' && (
+                          <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full">
+                            Confirmed
+                          </span>
+                        )}
+                        {tx.status === 'rejected' && (
+                          <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full">
+                            Rejected
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-gray-400 text-sm">
+                        {new Date(tx.createdAt).toLocaleDateString()} at {new Date(tx.createdAt).toLocaleTimeString()}
+                      </div>
+                      <div className="text-gray-500 text-xs mt-1">
+                        {tx.coin} • {tx.savingsType === 'flexible' ? 'Flexible' : 'Fixed-Term'}
+                        {tx.network && ` • ${tx.network}`}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-white text-lg font-medium">
+                      ${tx.usdValue.toFixed(2)}
+                    </div>
+                    <div className="text-gray-400 text-sm">{tx.coin}</div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {userTransactions.length > 0 && (
+            <div className="mt-4 text-center">
+              <p className="text-gray-400 text-sm">
+                Showing {userTransactions.length} most recent {userTransactions.length === 1 ? 'transaction' : 'transactions'}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

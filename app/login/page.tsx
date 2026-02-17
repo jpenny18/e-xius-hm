@@ -1,13 +1,28 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
+import { registerUser, loginUser } from '@/lib/auth'
+import { useAuth } from '@/hooks/useAuth'
 
 export default function LoginPage() {
+  const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
+  
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login')
   const [accountType, setAccountType] = useState<'personal' | 'corporate'>('personal')
   const [signupStep, setSignupStep] = useState(1)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  
+  const [loginData, setLoginData] = useState({
+    email: '',
+    password: '',
+  })
+  
   const [formData, setFormData] = useState({
     email: '',
     referralCode: '',
@@ -17,6 +32,13 @@ export default function LoginPage() {
     confirmPassword: '',
     agreeToTerms: false,
   })
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push('/dashboard')
+    }
+  }, [user, authLoading, router])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target
@@ -50,8 +72,79 @@ export default function LoginPage() {
 
   const handleTabChange = (tab: 'login' | 'signup') => {
     setActiveTab(tab)
+    setError('')
+    setSuccess('')
     if (tab === 'login') {
       resetSignupFlow()
+    }
+  }
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+
+    try {
+      const result = await loginUser(loginData.email, loginData.password)
+      
+      if (result.success) {
+        router.push('/dashboard')
+      } else {
+        setError(result.error || 'Failed to login')
+      }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSignup = async () => {
+    setError('')
+    setSuccess('')
+    setLoading(true)
+
+    // Validation
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match')
+      setLoading(false)
+      return
+    }
+
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters')
+      setLoading(false)
+      return
+    }
+
+    if (!formData.agreeToTerms) {
+      setError('You must agree to the terms and conditions')
+      setLoading(false)
+      return
+    }
+
+    try {
+      const result = await registerUser(
+        formData.email,
+        formData.password,
+        formData.firstName,
+        formData.lastName,
+        accountType,
+        formData.referralCode
+      )
+
+      if (result.success) {
+        setSuccess('Account created successfully! Redirecting to dashboard...')
+        setTimeout(() => {
+          router.push('/dashboard')
+        }, 1500)
+      } else {
+        setError(result.error || 'Failed to create account')
+      }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -189,9 +282,21 @@ export default function LoginPage() {
               </div>
             )}
 
+            {/* Error/Success Messages */}
+            {error && (
+              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                <p className="text-sm text-red-400">{error}</p>
+              </div>
+            )}
+            {success && (
+              <div className="mb-4 p-3 bg-teal-400/10 border border-teal-400/20 rounded-lg">
+                <p className="text-sm text-teal-400">{success}</p>
+              </div>
+            )}
+
             {/* Login Form */}
             {activeTab === 'login' && (
-              <form className="space-y-6">
+              <form onSubmit={handleLogin} className="space-y-6">
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
                     Email Address
@@ -199,8 +304,12 @@ export default function LoginPage() {
                   <input
                     id="email"
                     type="email"
+                    value={loginData.email}
+                    onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                     placeholder="you@example.com"
-                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition-all"
+                    required
+                    disabled={loading}
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition-all disabled:opacity-50"
                   />
                 </div>
 
@@ -211,8 +320,12 @@ export default function LoginPage() {
                   <input
                     id="password"
                     type="password"
+                    value={loginData.password}
+                    onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
                     placeholder="••••••••"
-                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition-all"
+                    required
+                    disabled={loading}
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition-all disabled:opacity-50"
                   />
                 </div>
 
@@ -231,9 +344,17 @@ export default function LoginPage() {
 
                 <button
                   type="submit"
-                  className="w-full bg-teal-400 text-primary py-3 rounded-lg font-semibold hover:bg-teal-300 transition-all"
+                  disabled={loading}
+                  className="w-full bg-teal-400 text-primary py-3 rounded-lg font-semibold hover:bg-teal-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
-                  Sign In
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-primary mr-2"></div>
+                      Signing In...
+                    </>
+                  ) : (
+                    'Sign In'
+                  )}
                 </button>
               </form>
             )}
@@ -267,7 +388,15 @@ export default function LoginPage() {
                   ))}
                 </div>
 
-                <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    if (signupStep === 4) {
+                      handleSignup()
+                    }
+                  }} 
+                  className="space-y-6"
+                >
                   {/* Step 1: Email */}
                   {signupStep === 1 && (
                     <>
@@ -507,10 +636,17 @@ export default function LoginPage() {
                         </button>
                         <button
                           type="submit"
-                          disabled={!formData.agreeToTerms}
-                          className="flex-1 bg-teal-400 text-primary py-3 rounded-lg font-semibold hover:bg-teal-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={!formData.agreeToTerms || loading}
+                          className="flex-1 bg-teal-400 text-primary py-3 rounded-lg font-semibold hover:bg-teal-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                         >
-                          Create Account
+                          {loading ? (
+                            <>
+                              <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-primary mr-2"></div>
+                              Creating Account...
+                            </>
+                          ) : (
+                            'Create Account'
+                          )}
                         </button>
                       </div>
                     </>

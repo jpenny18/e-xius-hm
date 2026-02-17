@@ -1,17 +1,38 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useAuth } from '@/hooks/useAuth'
+import { logoutUser } from '@/lib/auth'
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const { user, userData } = useAuth()
 
   const isActive = (path: string) => {
     if (path === '/dashboard') {
       return pathname === path
     }
     return pathname.startsWith(path)
+  }
+
+  const handleSignOut = async () => {
+    await logoutUser()
+    router.push('/login')
+  }
+
+  // Get initials from user name
+  const getInitials = () => {
+    if (userData?.firstName && userData?.lastName) {
+      return `${userData.firstName[0]}${userData.lastName[0]}`
+    }
+    if (user?.email) {
+      return user.email[0].toUpperCase()
+    }
+    return 'U'
   }
 
   return (
@@ -76,16 +97,20 @@ export default function Sidebar() {
       <div className="p-4 border-t border-gray-800">
         <div className="flex items-center gap-3 px-4 py-3">
           <div className="w-10 h-10 rounded-full bg-teal-400 flex items-center justify-center text-primary font-semibold">
-            JD
+            {getInitials()}
           </div>
           <div className="flex-1">
-            <div className="text-sm font-medium text-white">John Doe</div>
-            <div className="text-xs text-gray-400">john@example.com</div>
+            <div className="text-sm font-medium text-white">
+              {userData?.firstName && userData?.lastName 
+                ? `${userData.firstName} ${userData.lastName}` 
+                : 'User'}
+            </div>
+            <div className="text-xs text-gray-400 truncate">{user?.email || ''}</div>
           </div>
         </div>
-        <Link
-          href="/"
-          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
+        <button
+          onClick={handleSignOut}
+          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors w-full"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -96,7 +121,7 @@ export default function Sidebar() {
             />
           </svg>
           Sign Out
-        </Link>
+        </button>
       </div>
     </aside>
   )
