@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 export default function Footer() {
   return (
     <footer className="bg-white text-gray-900 py-16 px-4">
@@ -36,24 +38,24 @@ export default function Footer() {
             <h3 className="font-semibold text-lg mb-4">Company</h3>
             <ul className="space-y-2">
               <li>
-                <a href="#" className="text-gray-600 hover:text-primary transition-colors">
+                <Link href="/about" className="text-gray-600 hover:text-primary transition-colors">
                   About
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-600 hover:text-primary transition-colors">
+                <Link href="/careers" className="text-gray-600 hover:text-primary transition-colors">
                   Careers
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-600 hover:text-primary transition-colors">
+                <Link href="/press" className="text-gray-600 hover:text-primary transition-colors">
                   Press
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-600 hover:text-primary transition-colors">
+                <Link href="/blog" className="text-gray-600 hover:text-primary transition-colors">
                   Blog
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -63,24 +65,24 @@ export default function Footer() {
             <h3 className="font-semibold text-lg mb-4">Legal</h3>
             <ul className="space-y-2">
               <li>
-                <a href="#" className="text-gray-600 hover:text-primary transition-colors">
+                <Link href="/privacy-policy" className="text-gray-600 hover:text-primary transition-colors">
                   Privacy Policy
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-600 hover:text-primary transition-colors">
+                <Link href="/terms-of-service" className="text-gray-600 hover:text-primary transition-colors">
                   Terms of Service
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-600 hover:text-primary transition-colors">
+                <Link href="/compliance" className="text-gray-600 hover:text-primary transition-colors">
                   Compliance
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-600 hover:text-primary transition-colors">
+                <Link href="/cookie-policy" className="text-gray-600 hover:text-primary transition-colors">
                   Cookie Policy
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -90,24 +92,19 @@ export default function Footer() {
             <h3 className="font-semibold text-lg mb-4">Support</h3>
             <ul className="space-y-2">
               <li>
-                <a href="#" className="text-gray-600 hover:text-primary transition-colors">
+                <Link href="/help-center" className="text-gray-600 hover:text-primary transition-colors">
                   Help Center
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-600 hover:text-primary transition-colors">
+                <Link href="/contact" className="text-gray-600 hover:text-primary transition-colors">
                   Contact Us
-                </a>
+                </Link>
               </li>
               <li>
-                <a href="#" className="text-gray-600 hover:text-primary transition-colors">
-                  Security
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-600 hover:text-primary transition-colors">
-                  Status
-                </a>
+                <Link href="/security-status" className="text-gray-600 hover:text-primary transition-colors">
+                  Security Status
+                </Link>
               </li>
             </ul>
           </div>
