@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import Header from './components/Header'
 import HeroStats from './components/HeroStats'
 import Calculator from './components/Calculator'
@@ -48,10 +49,6 @@ export default function Home() {
   }
 
   const rates = activeTab === 'flexible' ? flexibleRates : fixedRates
-
-  const scrollToSection = () => {
-    document.getElementById('section-two')?.scrollIntoView({ behavior: 'smooth' })
-  }
 
   return (
     <>
@@ -152,15 +149,15 @@ export default function Home() {
                 with daily compounding and no lockups
               </p>
             </div>
-            <button
-              onClick={scrollToSection}
+            <Link
+              href="/login"
               className="bg-teal-400 text-primary px-8 py-4 rounded-xl text-lg font-semibold hover:bg-teal-300 transition-all inline-flex items-center gap-2 mb-6"
             >
               Start earning
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
-            </button>
+            </Link>
 
             {/* Info Card */}
             <div className="bg-gray-900/50 border border-gray-700 rounded-xl p-5 backdrop-blur-sm hidden">
@@ -217,15 +214,15 @@ export default function Home() {
               <p className="text-lg md:text-2xl lg:text-[24px] text-gray-300 mb-8 md:mb-8 md:max-w-md text-center md:text-right">
                 Earn up to 26% yearly on your crypto with daily compounding and no lockups
               </p>
-              <button
-                onClick={scrollToSection}
+              <Link
+                href="/login"
                 className="bg-teal-400 text-primary px-8 py-4 rounded-xl text-lg font-semibold hover:bg-teal-300 transition-all inline-flex items-center gap-2"
               >
                 Start earning
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
-              </button>
+              </Link>
             </div>
           </div>
           

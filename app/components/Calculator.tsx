@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 
 interface CalculatorProps {
   rates: { [key: string]: number }
@@ -117,21 +118,21 @@ export default function Calculator({ rates, isFixed }: CalculatorProps) {
             </div>
 
             {/* Start Earning Button */}
-            <button className="w-full bg-primary text-white py-4 rounded-lg font-semibold hover:bg-opacity-90 transition-all">
+            <Link href="/login" className="block w-full bg-primary text-white py-4 rounded-lg font-semibold hover:bg-opacity-90 transition-all text-center">
               Start earning
-            </button>
+            </Link>
 
             {/* Info Box */}
             <div className="bg-white p-6 rounded-lg border border-gray-200">
               <p className="text-sm text-subtext mb-2">
                 Choose Exius&apos;s <span className="font-semibold text-primary">{isFixed ? 'Fixed-term' : 'Flexible'} Savings</span> and enjoy higher interest rates for the long term. Discover how much you can earn.
               </p>
-              <a href="#" className="text-sm text-primary font-semibold hover:underline inline-flex items-center">
+              <Link href="/login" className="text-sm text-primary font-semibold hover:underline inline-flex items-center">
                 Learn more
                 <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
-              </a>
+              </Link>
             </div>
           </div>
 
