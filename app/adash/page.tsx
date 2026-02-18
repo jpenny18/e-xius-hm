@@ -2,7 +2,7 @@
 
 export default function AdminDashboardPage() {
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen p-4 md:p-8">
       {/* Diagonal Teal Stripe Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-30">
         <svg
@@ -28,16 +28,16 @@ export default function AdminDashboardPage() {
 
       <div className="relative z-10 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-medium text-white mb-2">Admin Dashboard</h1>
-          <p className="text-gray-400">Overview of platform activity and statistics</p>
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-medium text-white mb-1">Admin Dashboard</h1>
+          <p className="text-gray-400 text-sm md:text-base">Overview of platform activity and statistics</p>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
+          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 md:p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-400 text-sm">Total Users</span>
+              <span className="text-gray-400 text-xs md:text-sm">Total Users</span>
               <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
@@ -47,24 +47,24 @@ export default function AdminDashboardPage() {
                 />
               </svg>
             </div>
-            <div className="text-3xl font-medium text-white mb-1">1,247</div>
-            <div className="text-sm text-green-400">+12.5% from last month</div>
+            <div className="text-2xl md:text-3xl font-medium text-white mb-1">1,247</div>
+            <div className="text-xs md:text-sm text-green-400">+12.5% from last month</div>
           </div>
 
-          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 md:p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-400 text-sm">Total Volume</span>
+              <span className="text-gray-400 text-xs md:text-sm">Total Volume</span>
               <svg className="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
             </div>
-            <div className="text-3xl font-medium text-white mb-1">$45.2M</div>
-            <div className="text-sm text-green-400">+8.2% from last month</div>
+            <div className="text-2xl md:text-3xl font-medium text-white mb-1">$45.2M</div>
+            <div className="text-xs md:text-sm text-green-400">+8.2% from last month</div>
           </div>
 
-          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 md:p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-400 text-sm">Pending Withdrawals</span>
+              <span className="text-gray-400 text-xs md:text-sm">Pending Withdrawals</span>
               <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
@@ -74,13 +74,13 @@ export default function AdminDashboardPage() {
                 />
               </svg>
             </div>
-            <div className="text-3xl font-medium text-white mb-1">23</div>
-            <div className="text-sm text-yellow-400">Requires attention</div>
+            <div className="text-2xl md:text-3xl font-medium text-white mb-1">23</div>
+            <div className="text-xs md:text-sm text-yellow-400">Requires attention</div>
           </div>
 
-          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 md:p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-400 text-sm">Active Savings</span>
+              <span className="text-gray-400 text-xs md:text-sm">Active Savings</span>
               <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
@@ -90,13 +90,13 @@ export default function AdminDashboardPage() {
                 />
               </svg>
             </div>
-            <div className="text-3xl font-medium text-white mb-1">$38.7M</div>
-            <div className="text-sm text-green-400">+15.3% from last month</div>
+            <div className="text-2xl md:text-3xl font-medium text-white mb-1">$38.7M</div>
+            <div className="text-xs md:text-sm text-green-400">+15.3% from last month</div>
           </div>
         </div>
 
         {/* Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
           <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
             <h3 className="text-xl font-medium text-white mb-4">Recent Transactions</h3>
             <div className="space-y-3">

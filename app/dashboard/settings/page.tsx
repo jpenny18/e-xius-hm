@@ -50,8 +50,47 @@ export default function SettingsPage() {
     }))
   }
 
+  const navItems = [
+    {
+      id: 'profile',
+      label: 'Profile',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+      ),
+    },
+    {
+      id: 'security',
+      label: 'Security',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+      ),
+    },
+    {
+      id: 'notifications',
+      label: 'Notifications',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        </svg>
+      ),
+    },
+    {
+      id: 'preferences',
+      label: 'Preferences',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+        </svg>
+      ),
+    },
+  ]
+
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen p-4 md:p-8">
       {/* Diagonal Teal Stripe Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-30">
         <svg
@@ -77,90 +116,31 @@ export default function SettingsPage() {
 
       <div className="relative z-10 max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-medium text-white mb-2">Settings</h1>
-          <p className="text-gray-400">Manage your account settings and preferences</p>
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-medium text-white mb-1">Settings</h1>
+          <p className="text-gray-400 text-sm md:text-base">Manage your account settings and preferences</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Sidebar Navigation */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6">
+          {/* Navigation - horizontal scroll on mobile, vertical on desktop */}
           <div className="lg:col-span-1">
-            <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 space-y-2">
-              <button
-                onClick={() => setActiveSection('profile')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-left ${
-                  activeSection === 'profile'
-                    ? 'bg-teal-400/10 text-teal-400'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-                }`}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
-                <span className="font-medium">Profile</span>
-              </button>
-
-              <button
-                onClick={() => setActiveSection('security')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-left ${
-                  activeSection === 'security'
-                    ? 'bg-teal-400/10 text-teal-400'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-                }`}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                  />
-                </svg>
-                <span className="font-medium">Security</span>
-              </button>
-
-              <button
-                onClick={() => setActiveSection('notifications')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-left ${
-                  activeSection === 'notifications'
-                    ? 'bg-teal-400/10 text-teal-400'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-                }`}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                  />
-                </svg>
-                <span className="font-medium">Notifications</span>
-              </button>
-
-              <button
-                onClick={() => setActiveSection('preferences')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-left ${
-                  activeSection === 'preferences'
-                    ? 'bg-teal-400/10 text-teal-400'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-                }`}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
-                  />
-                </svg>
-                <span className="font-medium">Preferences</span>
-              </button>
+            <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-3 md:p-4">
+              <div className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-x-visible pb-1 lg:pb-0 scrollbar-hide">
+                {navItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveSection(item.id)}
+                    className={`flex-shrink-0 lg:flex-shrink lg:w-full flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-lg transition-all text-left whitespace-nowrap lg:whitespace-normal ${
+                      activeSection === item.id
+                        ? 'bg-teal-400/10 text-teal-400'
+                        : 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+                    }`}
+                  >
+                    <span className="flex-shrink-0">{item.icon}</span>
+                    <span className="font-medium text-sm lg:text-base">{item.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -168,13 +148,13 @@ export default function SettingsPage() {
           <div className="lg:col-span-3">
             {/* Profile Section */}
             {activeSection === 'profile' && (
-              <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-8">
-                <h2 className="text-2xl font-medium text-white mb-6">Profile Information</h2>
+              <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-5 md:p-8">
+                <h2 className="text-xl md:text-2xl font-medium text-white mb-5 md:mb-6">Profile Information</h2>
 
-                <form className="space-y-6">
+                <form className="space-y-5 md:space-y-6">
                   {/* Profile Picture */}
-                  <div className="flex items-center gap-6">
-                    <div className="w-20 h-20 rounded-full bg-teal-400 flex items-center justify-center text-primary font-bold text-2xl">
+                  <div className="flex items-center gap-4 md:gap-6">
+                    <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-teal-400 flex items-center justify-center text-primary font-bold text-xl md:text-2xl flex-shrink-0">
                       JD
                     </div>
                     <div>
@@ -184,12 +164,12 @@ export default function SettingsPage() {
                       >
                         Change Photo
                       </button>
-                      <p className="text-gray-400 text-sm mt-2">JPG, PNG or GIF. Max size 2MB.</p>
+                      <p className="text-gray-400 text-xs md:text-sm mt-2">JPG, PNG or GIF. Max size 2MB.</p>
                     </div>
                   </div>
 
                   {/* Name Fields */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">First Name</label>
                       <input
@@ -213,7 +193,7 @@ export default function SettingsPage() {
                   </div>
 
                   {/* Email & Phone */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
                       <input
@@ -237,7 +217,7 @@ export default function SettingsPage() {
                   </div>
 
                   {/* Country & Account Type */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">Country</label>
                       <select
@@ -264,16 +244,16 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  <div className="flex gap-4 pt-4">
+                  <div className="flex flex-wrap gap-3 pt-2">
                     <button
                       type="submit"
-                      className="px-6 py-3 bg-teal-400 text-primary rounded-lg font-semibold hover:bg-teal-300 transition-all"
+                      className="flex-1 sm:flex-none px-6 py-3 bg-teal-400 text-primary rounded-lg font-semibold hover:bg-teal-300 transition-all"
                     >
                       Save Changes
                     </button>
                     <button
                       type="button"
-                      className="px-6 py-3 bg-gray-700 text-white rounded-lg font-semibold hover:bg-gray-600 transition-all"
+                      className="flex-1 sm:flex-none px-6 py-3 bg-gray-700 text-white rounded-lg font-semibold hover:bg-gray-600 transition-all"
                     >
                       Cancel
                     </button>
@@ -284,11 +264,11 @@ export default function SettingsPage() {
 
             {/* Security Section */}
             {activeSection === 'security' && (
-              <div className="space-y-6">
-                <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-8">
-                  <h2 className="text-2xl font-medium text-white mb-6">Change Password</h2>
+              <div className="space-y-4 md:space-y-6">
+                <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-5 md:p-8">
+                  <h2 className="text-xl md:text-2xl font-medium text-white mb-5 md:mb-6">Change Password</h2>
 
-                  <form className="space-y-6">
+                  <form className="space-y-5 md:space-y-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">Current Password</label>
                       <input
@@ -327,30 +307,30 @@ export default function SettingsPage() {
 
                     <button
                       type="submit"
-                      className="px-6 py-3 bg-teal-400 text-primary rounded-lg font-semibold hover:bg-teal-300 transition-all"
+                      className="w-full sm:w-auto px-6 py-3 bg-teal-400 text-primary rounded-lg font-semibold hover:bg-teal-300 transition-all"
                     >
                       Update Password
                     </button>
                   </form>
                 </div>
 
-                <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-8">
-                  <h2 className="text-2xl font-medium text-white mb-6">Two-Factor Authentication</h2>
-                  <p className="text-gray-400 mb-6">
+                <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-5 md:p-8">
+                  <h2 className="text-xl md:text-2xl font-medium text-white mb-4 md:mb-6">Two-Factor Authentication</h2>
+                  <p className="text-gray-400 mb-5 md:mb-6 text-sm md:text-base">
                     Add an extra layer of security to your account by enabling two-factor authentication.
                   </p>
-                  <button className="px-6 py-3 bg-teal-400 text-primary rounded-lg font-semibold hover:bg-teal-300 transition-all">
+                  <button className="w-full sm:w-auto px-6 py-3 bg-teal-400 text-primary rounded-lg font-semibold hover:bg-teal-300 transition-all">
                     Enable 2FA
                   </button>
                 </div>
 
-                <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-8">
-                  <h2 className="text-2xl font-medium text-white mb-4">Active Sessions</h2>
-                  <p className="text-gray-400 mb-6">Manage your active sessions across different devices.</p>
+                <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-5 md:p-8">
+                  <h2 className="text-xl md:text-2xl font-medium text-white mb-3 md:mb-4">Active Sessions</h2>
+                  <p className="text-gray-400 mb-5 md:mb-6 text-sm md:text-base">Manage your active sessions across different devices.</p>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between p-4 bg-gray-800/30 border border-gray-700 rounded-lg">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-teal-400/10 rounded-lg flex items-center justify-center text-teal-400">
+                      <div className="flex items-center gap-3 md:gap-4 min-w-0">
+                        <div className="w-10 h-10 bg-teal-400/10 rounded-lg flex items-center justify-center text-teal-400 flex-shrink-0">
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
                               strokeLinecap="round"
@@ -360,12 +340,12 @@ export default function SettingsPage() {
                             />
                           </svg>
                         </div>
-                        <div>
-                          <div className="text-white font-medium">MacBook Pro - Current</div>
-                          <div className="text-gray-400 text-sm">San Francisco, CA • Last active now</div>
+                        <div className="min-w-0">
+                          <div className="text-white font-medium text-sm md:text-base">MacBook Pro - Current</div>
+                          <div className="text-gray-400 text-xs md:text-sm truncate">San Francisco, CA • Last active now</div>
                         </div>
                       </div>
-                      <span className="text-teal-400 text-sm font-medium">Active</span>
+                      <span className="text-teal-400 text-sm font-medium flex-shrink-0 ml-2">Active</span>
                     </div>
                   </div>
                 </div>
@@ -374,93 +354,60 @@ export default function SettingsPage() {
 
             {/* Notifications Section */}
             {activeSection === 'notifications' && (
-              <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-8">
-                <h2 className="text-2xl font-medium text-white mb-6">Notification Preferences</h2>
+              <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-5 md:p-8">
+                <h2 className="text-xl md:text-2xl font-medium text-white mb-5 md:mb-6">Notification Preferences</h2>
 
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between py-4 border-b border-gray-700">
-                    <div>
-                      <div className="text-white font-medium mb-1">Email Alerts</div>
-                      <div className="text-gray-400 text-sm">
-                        Receive email notifications for important account activities
+                <div className="space-y-1">
+                  {[
+                    {
+                      key: 'emailAlerts',
+                      label: 'Email Alerts',
+                      desc: 'Receive email notifications for important account activities',
+                    },
+                    {
+                      key: 'transactionNotifications',
+                      label: 'Transaction Notifications',
+                      desc: 'Get notified about deposits, withdrawals, and interest payments',
+                    },
+                    {
+                      key: 'weeklyReports',
+                      label: 'Weekly Reports',
+                      desc: 'Receive weekly summaries of your earnings and activity',
+                    },
+                    {
+                      key: 'marketingEmails',
+                      label: 'Marketing Emails',
+                      desc: 'Receive updates about new features and promotions',
+                    },
+                  ].map((item, index, arr) => (
+                    <div
+                      key={item.key}
+                      className={`flex items-center justify-between py-4 gap-4 ${index < arr.length - 1 ? 'border-b border-gray-700' : ''}`}
+                    >
+                      <div className="min-w-0">
+                        <div className="text-white font-medium mb-0.5 text-sm md:text-base">{item.label}</div>
+                        <div className="text-gray-400 text-xs md:text-sm">{item.desc}</div>
                       </div>
-                    </div>
-                    <button
-                      onClick={() => handleNotificationToggle('emailAlerts')}
-                      className={`relative w-12 h-6 rounded-full transition-colors ${
-                        notifications.emailAlerts ? 'bg-teal-400' : 'bg-gray-700'
-                      }`}
-                    >
-                      <div
-                        className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                          notifications.emailAlerts ? 'transform translate-x-6' : ''
+                      <button
+                        onClick={() => handleNotificationToggle(item.key)}
+                        className={`relative flex-shrink-0 w-12 h-6 rounded-full transition-colors ${
+                          notifications[item.key as keyof typeof notifications] ? 'bg-teal-400' : 'bg-gray-700'
                         }`}
-                      />
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between py-4 border-b border-gray-700">
-                    <div>
-                      <div className="text-white font-medium mb-1">Transaction Notifications</div>
-                      <div className="text-gray-400 text-sm">
-                        Get notified about deposits, withdrawals, and interest payments
-                      </div>
+                        role="switch"
+                        aria-checked={notifications[item.key as keyof typeof notifications]}
+                      >
+                        <div
+                          className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                            notifications[item.key as keyof typeof notifications] ? 'transform translate-x-6' : ''
+                          }`}
+                        />
+                      </button>
                     </div>
-                    <button
-                      onClick={() => handleNotificationToggle('transactionNotifications')}
-                      className={`relative w-12 h-6 rounded-full transition-colors ${
-                        notifications.transactionNotifications ? 'bg-teal-400' : 'bg-gray-700'
-                      }`}
-                    >
-                      <div
-                        className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                          notifications.transactionNotifications ? 'transform translate-x-6' : ''
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between py-4 border-b border-gray-700">
-                    <div>
-                      <div className="text-white font-medium mb-1">Weekly Reports</div>
-                      <div className="text-gray-400 text-sm">Receive weekly summaries of your earnings and activity</div>
-                    </div>
-                    <button
-                      onClick={() => handleNotificationToggle('weeklyReports')}
-                      className={`relative w-12 h-6 rounded-full transition-colors ${
-                        notifications.weeklyReports ? 'bg-teal-400' : 'bg-gray-700'
-                      }`}
-                    >
-                      <div
-                        className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                          notifications.weeklyReports ? 'transform translate-x-6' : ''
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between py-4">
-                    <div>
-                      <div className="text-white font-medium mb-1">Marketing Emails</div>
-                      <div className="text-gray-400 text-sm">Receive updates about new features and promotions</div>
-                    </div>
-                    <button
-                      onClick={() => handleNotificationToggle('marketingEmails')}
-                      className={`relative w-12 h-6 rounded-full transition-colors ${
-                        notifications.marketingEmails ? 'bg-teal-400' : 'bg-gray-700'
-                      }`}
-                    >
-                      <div
-                        className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                          notifications.marketingEmails ? 'transform translate-x-6' : ''
-                        }`}
-                      />
-                    </button>
-                  </div>
+                  ))}
                 </div>
 
-                <div className="pt-6">
-                  <button className="px-6 py-3 bg-teal-400 text-primary rounded-lg font-semibold hover:bg-teal-300 transition-all">
+                <div className="pt-5 md:pt-6">
+                  <button className="w-full sm:w-auto px-6 py-3 bg-teal-400 text-primary rounded-lg font-semibold hover:bg-teal-300 transition-all">
                     Save Preferences
                   </button>
                 </div>
@@ -469,11 +416,11 @@ export default function SettingsPage() {
 
             {/* Preferences Section */}
             {activeSection === 'preferences' && (
-              <div className="space-y-6">
-                <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-8">
-                  <h2 className="text-2xl font-medium text-white mb-6">Display Preferences</h2>
+              <div className="space-y-4 md:space-y-6">
+                <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-5 md:p-8">
+                  <h2 className="text-xl md:text-2xl font-medium text-white mb-5 md:mb-6">Display Preferences</h2>
 
-                  <div className="space-y-6">
+                  <div className="space-y-5 md:space-y-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">Currency Display</label>
                       <select className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition-all">
@@ -505,19 +452,19 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  <div className="pt-6">
-                    <button className="px-6 py-3 bg-teal-400 text-primary rounded-lg font-semibold hover:bg-teal-300 transition-all">
+                  <div className="pt-5 md:pt-6">
+                    <button className="w-full sm:w-auto px-6 py-3 bg-teal-400 text-primary rounded-lg font-semibold hover:bg-teal-300 transition-all">
                       Save Preferences
                     </button>
                   </div>
                 </div>
 
-                <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-8">
-                  <h2 className="text-2xl font-medium text-white mb-4">Danger Zone</h2>
-                  <p className="text-gray-400 mb-6">
+                <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-5 md:p-8">
+                  <h2 className="text-xl md:text-2xl font-medium text-white mb-3 md:mb-4">Danger Zone</h2>
+                  <p className="text-gray-400 mb-5 md:mb-6 text-sm md:text-base">
                     Permanently delete your account and all associated data. This action cannot be undone.
                   </p>
-                  <button className="px-6 py-3 bg-red-500/10 border border-red-500 text-red-500 rounded-lg font-semibold hover:bg-red-500/20 transition-all">
+                  <button className="w-full sm:w-auto px-6 py-3 bg-red-500/10 border border-red-500 text-red-500 rounded-lg font-semibold hover:bg-red-500/20 transition-all">
                     Delete Account
                   </button>
                 </div>

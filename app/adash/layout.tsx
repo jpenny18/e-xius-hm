@@ -10,7 +10,7 @@ export default function AdminDashboardLayout({
     <ProtectedRoute requireAdmin={true}>
       <div className="min-h-screen bg-[#0f1419] flex">
         <AdminSidebar />
-        <main className="flex-1">
+        <main className="flex-1 min-w-0 pt-16 md:pt-0">
           {children}
         </main>
       </div>

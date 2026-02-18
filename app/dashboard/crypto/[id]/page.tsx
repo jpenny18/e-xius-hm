@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -8,12 +8,17 @@ import { useAuth } from '@/hooks/useAuth'
 import { createDepositTransaction, getUserTransactions } from '@/lib/transactions'
 import { sendDepositPendingEmail, sendAdminDepositNotification } from '@/lib/email'
 import { usdToCrypto, formatCryptoAmount, getCryptoPrice } from '@/lib/prices'
+import { getAPY } from '@/lib/interest'
 
 export default function CryptoDetailPage() {
   const params = useParams()
   const searchParams = useSearchParams()
   const coinId = params.id as string
-  const type = searchParams.get('type') || 'flexible'
+  // URL sends 'flexible' or 'fixed'; normalise to the canonical savings type
+  const rawType = searchParams.get('type') || 'flexible'
+  const savingsType: 'flexible' | 'fixed-term' = rawType === 'flexible' ? 'flexible' : 'fixed-term'
+  // Keep 'type' as the raw URL value so balance keys remain consistent with stored data
+  const type = rawType
   const { user, userData } = useAuth()
 
   const [showDepositModal, setShowDepositModal] = useState(false)
@@ -29,30 +34,6 @@ export default function CryptoDetailPage() {
   const [loadingPrice, setLoadingPrice] = useState(false)
   const [userTransactions, setUserTransactions] = useState<any[]>([])
   const [loadingTransactions, setLoadingTransactions] = useState(true)
-
-  const flexibleRates: { [key: string]: number } = {
-    btc: 9,
-    eth: 12.3,
-    xrp: 9.3,
-    bnb: 8,
-    usdt: 16,
-    trx: 8,
-    usdc: 14.5,
-    sol: 10,
-    ltc: 7,
-  }
-
-  const fixedRates: { [key: string]: number } = {
-    btc: 9.8,
-    eth: 14.6,
-    xrp: 10.3,
-    bnb: 9.6,
-    usdt: 26,
-    trx: 12,
-    usdc: 22.5,
-    sol: 16,
-    ltc: 13,
-  }
 
   const coinLogos: { [key: string]: string } = {
     btc: '/BTC.svg',
@@ -184,23 +165,24 @@ export default function CryptoDetailPage() {
     return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrData)}`
   }
 
-  const rates = type === 'flexible' ? flexibleRates : fixedRates
-  const rate = rates[coinId] || 0
+  // Single source of truth — reads from lib/interest.ts so rates can never drift
+  const rate = getAPY(coinId, savingsType)
   const coinName = coinNames[coinId] || coinId.toUpperCase()
   const coinLogo = coinLogos[coinId] || '/BTC.svg'
   const depositAddress = getDepositAddress()
 
-  // Get user balance for this coin
-  const getUserBalance = () => {
-    if (!userData?.balances) return { amount: 0, usdValue: 0, totalEarned: 0 }
-    
-    const balanceKey = `${coinId.toUpperCase()}_${type}`
-    const balance = userData.balances[balanceKey]
-    
-    return balance || { amount: 0, usdValue: 0, totalEarned: 0 }
-  }
+  // Balance key matches what confirmTransaction stores: `COIN_flexible` or `COIN_fixed`
+  const balanceKey = `${coinId.toUpperCase()}_${type}`
 
-  const userBalance = getUserBalance()
+  // Memoised so it only recomputes when userData or the URL params change
+  const userBalance = useMemo(() => {
+    const empty = { amount: 0, usdValue: 0, totalEarned: 0, startDate: '' }
+    if (!userData?.balances) return empty
+    return (userData.balances[balanceKey] as typeof empty) || empty
+  }, [userData, balanceKey])
+
+  // Derived calculations — guaranteed to use the canonical APR from lib/interest.ts
+  const estDailyInterest = userBalance.usdValue * (rate / 100 / 365)
 
   // Load user transactions
   useEffect(() => {
@@ -245,7 +227,7 @@ export default function CryptoDetailPage() {
   }, [depositAmount, coinId])
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen p-4 md:p-8">
       {/* Diagonal Teal Stripe Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-30">
         <svg
@@ -273,7 +255,7 @@ export default function CryptoDetailPage() {
         {/* Back Button */}
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-6"
+          className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4 md:mb-6"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -282,52 +264,52 @@ export default function CryptoDetailPage() {
         </Link>
 
         {/* Crypto Header */}
-        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-8 mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 relative">
-                <Image src={coinLogo} alt={coinName} width={64} height={64} className="object-contain" />
+        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 md:p-8 mb-4 md:mb-8">
+          <div className="flex items-center justify-between mb-4 md:mb-6">
+            <div className="flex items-center gap-3 md:gap-4">
+              <div className="w-12 h-12 md:w-16 md:h-16 relative flex-shrink-0">
+                <Image src={coinLogo} alt={coinName} width={64} height={64} className="object-contain w-full h-full" />
               </div>
               <div>
-                <h1 className="text-3xl font-medium text-white">{coinId.toUpperCase()}</h1>
-                <p className="text-gray-400">{coinName}</p>
+                <h1 className="text-2xl md:text-3xl font-medium text-white">{coinId.toUpperCase()}</h1>
+                <p className="text-gray-400 text-sm md:text-base">{coinName}</p>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-sm text-gray-400 mb-1">{type === 'flexible' ? 'Flexible' : 'Fixed-Term'} APY</div>
-              <div className="text-4xl font-medium text-teal-400">{rate}%</div>
+              <div className="text-xs md:text-sm text-gray-400 mb-0.5">{type === 'flexible' ? 'Flexible' : 'Fixed-Term'} APY</div>
+              <div className="text-3xl md:text-4xl font-medium text-teal-400">{rate}%</div>
             </div>
           </div>
 
           {/* Balance */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <div>
-              <div className="text-gray-400 text-sm mb-1">Your Balance</div>
-              <div className="text-white text-2xl font-medium">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
+            <div className="bg-gray-800/30 rounded-xl p-3 md:p-0 md:bg-transparent">
+              <div className="text-gray-400 text-xs md:text-sm mb-1">Your Balance</div>
+              <div className="text-white text-xl md:text-2xl font-medium">
                 {userBalance.amount > 0 ? formatCryptoAmount(userBalance.amount, coinId) : '0'} {coinId.toUpperCase()}
               </div>
               <div className="text-gray-400 text-sm">
                 ${userBalance.usdValue.toFixed(2)}
               </div>
             </div>
-            <div>
-              <div className="text-gray-400 text-sm mb-1">Total Earned</div>
-              <div className="text-teal-400 text-2xl font-medium">
-                ${(userBalance.totalEarned || 0).toFixed(2)}
+            <div className="bg-gray-800/30 rounded-xl p-3 md:p-0 md:bg-transparent">
+              <div className="text-gray-400 text-xs md:text-sm mb-1">Total Earned</div>
+              <div className="text-teal-400 text-xl md:text-2xl font-medium">
+                +${(userBalance.totalEarned || 0).toFixed(2)}
               </div>
-              <div className="text-gray-400 text-sm">Interest paid out daily</div>
+              <div className="text-gray-400 text-sm">Compounded daily</div>
             </div>
-            <div>
-              <div className="text-gray-400 text-sm mb-1">Est. Daily Interest</div>
-              <div className="text-white text-2xl font-medium">
-                ${(userBalance.usdValue * (rate / 100 / 365)).toFixed(2)}
+            <div className="bg-gray-800/30 rounded-xl p-3 md:p-0 md:bg-transparent">
+              <div className="text-gray-400 text-xs md:text-sm mb-1">Est. Daily Interest</div>
+              <div className="text-white text-xl md:text-2xl font-medium">
+                +${estDailyInterest.toFixed(4)}
               </div>
-              <div className="text-gray-400 text-sm">Per day at {rate}% APY</div>
+              <div className="text-gray-400 text-sm">Per day at {rate}% APR</div>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-4">
+          <div className="flex gap-3 md:gap-4">
             <button
               onClick={() => {
                 setShowDepositModal(true)
@@ -339,9 +321,9 @@ export default function CryptoDetailPage() {
                   setSelectedNetwork(getAvailableNetworks()[0])
                 }
               }}
-              className="flex-1 bg-teal-400 text-primary py-3 rounded-lg font-semibold hover:bg-teal-300 transition-all flex items-center justify-center gap-2"
+              className="flex-1 bg-teal-400 text-primary py-3 rounded-lg font-semibold hover:bg-teal-300 transition-all flex items-center justify-center gap-2 text-sm md:text-base active:scale-95"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -353,15 +335,15 @@ export default function CryptoDetailPage() {
             </button>
             <button
               onClick={() => setShowWithdrawModal(true)}
-              className="flex-1 bg-gray-700 text-white py-3 rounded-lg font-semibold hover:bg-gray-600 transition-all flex items-center justify-center gap-2"
+              className="flex-1 bg-gray-700 text-white py-3 rounded-lg font-semibold hover:bg-gray-600 transition-all flex items-center justify-center gap-2 text-sm md:text-base active:scale-95"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2h2m3-4H9a2 2 0 00-2 2v7a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-1m-1 4l-3 3m0 0l-3-3m3 3V3" />
               </svg>
               Withdraw
             </button>
-            <button className="bg-gray-700 text-white p-3 rounded-lg font-semibold hover:bg-gray-600 transition-all">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button className="bg-gray-700 text-white p-3 rounded-lg font-semibold hover:bg-gray-600 transition-all active:scale-95 flex-shrink-0">
+              <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -374,17 +356,17 @@ export default function CryptoDetailPage() {
         </div>
 
         {/* Transactions */}
-        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-medium text-white">Transactions</h2>
-            <div className="flex gap-2">
-              <button className="px-4 py-2 bg-gray-800/50 text-gray-400 rounded-lg hover:text-white transition-colors text-sm">
+        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 md:p-6">
+          <div className="flex items-center justify-between mb-4 md:mb-6 gap-3">
+            <h2 className="text-xl md:text-2xl font-medium text-white">Transactions</h2>
+            <div className="flex gap-1.5 md:gap-2">
+              <button className="px-2.5 md:px-4 py-1.5 md:py-2 bg-gray-800/50 text-gray-400 rounded-lg hover:text-white transition-colors text-xs md:text-sm">
                 All
               </button>
-              <button className="px-4 py-2 bg-gray-800/50 text-gray-400 rounded-lg hover:text-white transition-colors text-sm">
+              <button className="px-2.5 md:px-4 py-1.5 md:py-2 bg-gray-800/50 text-gray-400 rounded-lg hover:text-white transition-colors text-xs md:text-sm">
                 Deposits
               </button>
-              <button className="px-4 py-2 bg-gray-800/50 text-gray-400 rounded-lg hover:text-white transition-colors text-sm">
+              <button className="px-2.5 md:px-4 py-1.5 md:py-2 bg-gray-800/50 text-gray-400 rounded-lg hover:text-white transition-colors text-xs md:text-sm">
                 Interest
               </button>
             </div>
@@ -460,15 +442,20 @@ export default function CryptoDetailPage() {
 
       {/* Deposit Modal */}
       {showDepositModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-medium text-white">
-                Deposit {coinId.toUpperCase()} 
-                <span className="text-gray-500 text-base ml-2">
-                  (Step {depositStep} of 2)
-                </span>
-              </h3>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-[#111827] border border-gray-700/80 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[92vh] overflow-y-auto shadow-2xl">
+
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-800">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 relative flex-shrink-0">
+                  <Image src={coinLogo} alt={coinName} width={32} height={32} className="object-contain w-full h-full" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-white leading-none">Deposit {coinId.toUpperCase()}</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">{type === 'flexible' ? 'Flexible' : 'Fixed-Term'} • {rate}% APY</p>
+                </div>
+              </div>
               <button
                 onClick={() => {
                   setShowDepositModal(false)
@@ -476,55 +463,52 @@ export default function CryptoDetailPage() {
                   setDepositAmount('')
                   setUserPhraseInput('')
                 }}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="p-1.5 text-gray-500 hover:text-white transition-colors rounded-lg hover:bg-gray-800"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            {/* Progress Indicator */}
-            <div className="flex items-center justify-center mb-6">
-              <div className="flex items-center gap-2">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  depositStep >= 1 ? 'bg-teal-400 text-primary' : 'bg-gray-700 text-gray-400'
-                }`}>
-                  1
+            {/* Progress Steps */}
+            <div className="flex items-center px-5 py-3 border-b border-gray-800/60">
+              <div className={`flex items-center gap-2 ${depositStep === 1 ? 'text-teal-400' : 'text-teal-400/60'}`}>
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${depositStep >= 1 ? 'bg-teal-400 text-primary' : 'bg-gray-700 text-gray-400'}`}>
+                  {depositStep > 1 ? (
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : '1'}
                 </div>
-                <div className={`w-12 h-0.5 ${depositStep >= 2 ? 'bg-teal-400' : 'bg-gray-700'}`}></div>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  depositStep >= 2 ? 'bg-teal-400 text-primary' : 'bg-gray-700 text-gray-400'
-                }`}>
+                <span className="text-xs font-medium">Amount</span>
+              </div>
+              <div className={`flex-1 mx-3 h-px ${depositStep >= 2 ? 'bg-teal-400' : 'bg-gray-700'}`} />
+              <div className={`flex items-center gap-2 ${depositStep === 2 ? 'text-teal-400' : 'text-gray-500'}`}>
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${depositStep >= 2 ? 'bg-teal-400 text-primary' : 'bg-gray-700 text-gray-400'}`}>
                   2
                 </div>
+                <span className="text-xs font-medium">Send & Confirm</span>
               </div>
             </div>
 
-            <div className="space-y-4">
-              {/* Step 1: Enter Amount */}
+            <div className="p-5 space-y-4">
+              {/* ── STEP 1: Enter Amount ── */}
               {depositStep === 1 && (
                 <>
-                  <div className="text-center mb-4">
-                    <h4 className="text-lg font-medium text-white mb-1">Enter Deposit Amount</h4>
-                    <p className="text-sm text-gray-400">Minimum deposit: $50 USD</p>
-                  </div>
-
                   {/* Network Selection for USDT/USDC */}
                   {hasMultipleNetworks() && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Select Network</label>
+                      <label className="block text-xs font-medium text-gray-400 mb-2 uppercase tracking-wide">Network</label>
                       <div className="flex gap-2">
                         {getAvailableNetworks().map((network) => (
                           <button
                             key={network}
-                            onClick={() => {
-                              setSelectedNetwork(network)
-                            }}
-                            className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all uppercase ${
+                            onClick={() => setSelectedNetwork(network)}
+                            className={`flex-1 px-3 py-2.5 rounded-lg font-semibold transition-all uppercase text-sm ${
                               selectedNetwork === network
                                 ? 'bg-teal-400 text-primary'
-                                : 'bg-gray-800/50 text-gray-400 hover:text-white border border-gray-700'
+                                : 'bg-gray-800 text-gray-400 hover:text-white border border-gray-700'
                             }`}
                           >
                             {network}
@@ -535,9 +519,9 @@ export default function CryptoDetailPage() {
                   )}
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Amount (USD)</label>
+                    <label className="block text-xs font-medium text-gray-400 mb-2 uppercase tracking-wide">Amount (USD)</label>
                     <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg">$</span>
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">$</span>
                       <input
                         type="number"
                         value={depositAmount}
@@ -545,28 +529,23 @@ export default function CryptoDetailPage() {
                         placeholder="50.00"
                         min="50"
                         step="0.01"
-                        className="w-full pl-8 pr-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition-all text-lg"
+                        className="w-full pl-8 pr-4 py-3.5 bg-gray-800/70 border border-gray-700 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition-all text-lg font-medium"
                       />
                     </div>
-                    {depositAmount && parseFloat(depositAmount) < 50 && (
-                      <p className="text-red-400 text-sm mt-2">Minimum deposit amount is $50 USD</p>
+                    {depositAmount && parseFloat(depositAmount) < 50 ? (
+                      <p className="text-red-400 text-xs mt-2">Minimum deposit is $50 USD</p>
+                    ) : (
+                      <p className="text-gray-600 text-xs mt-2">Minimum deposit: $50 USD</p>
                     )}
                   </div>
 
-                  <div className="bg-teal-400/10 border border-teal-400/20 rounded-lg p-4">
-                    <div className="flex gap-2">
-                      <svg className="w-5 h-5 text-teal-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      <p className="text-sm text-teal-400">
-                        Your deposit will start earning {rate}% APY immediately after confirmation on the blockchain.
-                      </p>
-                    </div>
+                  <div className="flex items-start gap-2.5 bg-teal-400/8 border border-teal-400/20 rounded-xl p-3.5">
+                    <svg className="w-4 h-4 text-teal-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                    <p className="text-xs text-teal-400/90 leading-relaxed">
+                      Starts earning <span className="font-semibold text-teal-400">{rate}% APY</span> immediately after blockchain confirmation.
+                    </p>
                   </div>
 
                   <button
@@ -576,124 +555,145 @@ export default function CryptoDetailPage() {
                       }
                     }}
                     disabled={!depositAmount || parseFloat(depositAmount) < 50}
-                    className="w-full bg-teal-400 text-primary py-3 rounded-lg font-semibold hover:bg-teal-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-teal-400 text-primary py-3.5 rounded-xl font-semibold hover:bg-teal-300 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed text-sm"
                   >
-                    Continue
+                    Continue →
                   </button>
                 </>
               )}
 
-              {/* Step 2: Confirm Deposit with Tracking Phrase */}
+              {/* ── STEP 2: Send & Confirm ── */}
               {depositStep === 2 && (
                 <>
-                  <div className="text-center mb-4">
-                    <h4 className="text-lg font-medium text-white mb-1">Confirm Your Deposit</h4>
-                    <p className="text-sm text-gray-400">
-                      Amount: ${depositAmount} USD {hasMultipleNetworks() && `• Network: ${selectedNetwork.toUpperCase()}`}
+                  {/* Network warning banner */}
+                  <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/25 rounded-xl px-3.5 py-2.5">
+                    <svg className="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <p className="text-xs text-amber-300 leading-snug">
+                      {hasMultipleNetworks()
+                        ? `Send ${coinId.toUpperCase()} via ${selectedNetwork.toUpperCase()} network only. Wrong network = lost funds.`
+                        : `Only send ${coinId.toUpperCase()} to this address. Other assets will be lost.`
+                      }
                     </p>
                   </div>
 
-                  {/* Deposit Amount Summary */}
-                  <div className="bg-teal-400/10 border border-teal-400/30 rounded-lg p-4">
-                    <div className="text-center">
-                      <div className="text-gray-400 text-sm mb-1">You need to send approximately:</div>
-                      <div className="text-teal-400 text-2xl font-bold mb-1">
-                        {loadingPrice ? '...' : formatCryptoAmount(cryptoAmount, coinId)} {coinId.toUpperCase()}
-                      </div>
-                      <div className="text-gray-400 text-sm">≈ ${depositAmount} USD</div>
-                    </div>
-                  </div>
-
-                  {/* Warning Box */}
-                  <div className="bg-gray-800/50 border border-gray-600 rounded-lg p-4">
-                    <div className="flex gap-3">
-                      <svg className="w-5 h-5 text-gray-300 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
+                  {/* Amount to send */}
+                  <div className="bg-gray-800/60 border border-gray-700/60 rounded-xl p-4">
+                    <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-gray-300">
-                          {hasMultipleNetworks() 
-                            ? `Only send ${coinId.toUpperCase()} via the ${selectedNetwork.toUpperCase()} network to this address. Sending via wrong network will result in permanent loss of funds.`
-                            : `Only send ${coinId.toUpperCase()} to this address. Sending other cryptocurrencies will result in permanent loss of funds.`
-                          }
+                        <p className="text-xs text-gray-500 mb-1">Send exactly</p>
+                        <p className="text-xl font-bold text-white">
+                          {loadingPrice ? (
+                            <span className="text-gray-500">Calculating...</span>
+                          ) : (
+                            <>{formatCryptoAmount(cryptoAmount, coinId)} <span className="text-teal-400">{coinId.toUpperCase()}</span></>
+                          )}
                         </p>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* QR Code Display */}
-                  <div className="bg-white rounded-lg p-6 text-center">
-                    <div className="mb-4">
-                      <img
-                        src={getQRCodeUrl(depositAddress, formatCryptoAmount(cryptoAmount, coinId), hasMultipleNetworks() ? selectedNetwork : undefined)}
-                        alt="Deposit QR Code"
-                        width="250"
-                        height="250"
-                        className="mx-auto"
-                      />
-                    </div>
-                    <div className="text-gray-600 text-xs font-mono break-all mb-3">{depositAddress}</div>
-                    <button
-                      onClick={() => navigator.clipboard.writeText(depositAddress)}
-                      className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors font-medium"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                      Copy Address
-                    </button>
-                  </div>
-
-                  {/* Tracking Phrase */}
-                  <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-6">
-                    <div className="text-sm text-gray-400 mb-2">Your tracking phrase (case sensitive):</div>
-                    <div className="bg-teal-400/10 border border-teal-400/30 rounded-lg p-4 mb-4">
-                      <div className="font-mono text-teal-400 text-lg text-center tracking-wide">
-                        {trackingPhrase}
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500 mb-1">Value</p>
+                        <p className="text-white font-semibold">${depositAmount} USD</p>
+                        {hasMultipleNetworks() && (
+                          <span className="text-xs text-teal-400 font-medium">{selectedNetwork.toUpperCase()}</span>
+                        )}
                       </div>
                     </div>
-                    <p className="text-xs text-gray-500 text-center">
-                      After sending your deposit, enter this phrase below to confirm.
-                    </p>
                   </div>
 
-                  {/* Tracking Phrase Input */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      I confirm I have sent the deposit - Enter tracking phrase:
-                    </label>
-                    <input
-                      type="text"
-                      value={userPhraseInput}
-                      onChange={(e) => setUserPhraseInput(e.target.value)}
-                      placeholder="Type the phrase exactly..."
-                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition-all font-mono"
-                    />
-                    {userPhraseInput && userPhraseInput !== trackingPhrase && (
-                      <p className="text-red-400 text-sm mt-2">Phrase does not match. Please check spelling and case.</p>
-                    )}
-                    {userPhraseInput && userPhraseInput === trackingPhrase && (
-                      <p className="text-teal-400 text-sm mt-2 flex items-center gap-1">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        Phrase verified!
-                      </p>
-                    )}
+                  {/* QR Code + Address — compact side-by-side on sm, stacked on xs */}
+                  <div className="bg-white rounded-xl p-4">
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      {/* QR */}
+                      <div className="flex-shrink-0">
+                        <img
+                          src={getQRCodeUrl(depositAddress, formatCryptoAmount(cryptoAmount, coinId), hasMultipleNetworks() ? selectedNetwork : undefined)}
+                          alt="Deposit QR Code"
+                          width="140"
+                          height="140"
+                          className="rounded-lg"
+                        />
+                      </div>
+                      {/* Address */}
+                      <div className="flex-1 min-w-0 text-center sm:text-left">
+                        <p className="text-gray-500 text-xs mb-2 font-medium">Deposit Address</p>
+                        <p className="font-mono text-gray-800 text-xs break-all leading-relaxed mb-3">{depositAddress}</p>
+                        <button
+                          onClick={() => navigator.clipboard.writeText(depositAddress)}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors px-3 py-1.5 rounded-lg"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                          Copy Address
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tracking phrase — display + confirmation input combined */}
+                  <div className="border border-gray-700/80 rounded-xl overflow-hidden">
+                    <div className="bg-gray-800/50 px-4 py-3 border-b border-gray-700/60">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-xs text-gray-400 mb-1 font-medium">Your tracking phrase</p>
+                          <p className="font-mono text-teal-400 text-sm font-semibold leading-relaxed break-words">{trackingPhrase}</p>
+                        </div>
+                        <button
+                          onClick={() => navigator.clipboard.writeText(trackingPhrase)}
+                          className="flex-shrink-0 p-2 text-gray-500 hover:text-teal-400 hover:bg-gray-700/60 rounded-lg transition-colors"
+                          title="Copy phrase"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                    <div className="bg-gray-900/40 px-4 py-3">
+                      <p className="text-xs text-gray-500 mb-2">Once sent, type the phrase above to confirm:</p>
+                      <input
+                        type="text"
+                        value={userPhraseInput}
+                        onChange={(e) => setUserPhraseInput(e.target.value)}
+                        placeholder="Type phrase to unlock submission..."
+                        className={`w-full px-3 py-2.5 bg-gray-800/80 border rounded-lg text-white text-sm placeholder-gray-600 focus:outline-none focus:ring-2 focus:border-transparent transition-all font-mono ${
+                          userPhraseInput && userPhraseInput === trackingPhrase
+                            ? 'border-teal-500 focus:ring-teal-400'
+                            : userPhraseInput
+                            ? 'border-red-500/60 focus:ring-red-400'
+                            : 'border-gray-700 focus:ring-teal-400'
+                        }`}
+                      />
+                      {userPhraseInput && userPhraseInput !== trackingPhrase && (
+                        <p className="text-red-400 text-xs mt-1.5">Phrase doesn't match — check spacing and case.</p>
+                      )}
+                      {userPhraseInput && userPhraseInput === trackingPhrase && (
+                        <p className="text-teal-400 text-xs mt-1.5 flex items-center gap-1 font-medium">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Confirmed — ready to submit
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   {submitError && (
-                    <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+                    <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 rounded-xl p-3.5">
+                      <svg className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
                       <p className="text-sm text-red-400">{submitError}</p>
                     </div>
                   )}
 
-                  <div className="flex gap-3">
+                  <div className="flex gap-3 pt-1">
                     <button
                       onClick={() => setDepositStep(1)}
-                      className="flex-1 bg-gray-700 text-white py-3 rounded-lg font-semibold hover:bg-gray-600 transition-all"
+                      className="flex-shrink-0 px-5 py-3 bg-gray-800 text-gray-300 hover:text-white rounded-xl font-semibold hover:bg-gray-700 active:scale-[0.98] transition-all text-sm"
                     >
-                      Back
+                      ← Back
                     </button>
                     <button
                       onClick={async () => {
@@ -706,24 +706,23 @@ export default function CryptoDetailPage() {
                         setSubmitError('')
 
                         try {
-                          // Create transaction in Firebase with calculated crypto amount
+                          const userName = `${userData.firstName} ${userData.lastName}`
+
                           const result = await createDepositTransaction(
                             user.uid,
                             user.email || '',
                             coinId,
                             hasMultipleNetworks() ? selectedNetwork : undefined,
-                            cryptoAmount, // Actual crypto amount based on current price
+                            cryptoAmount,
                             parseFloat(depositAmount),
                             trackingPhrase,
                             depositAddress,
-                            type as 'flexible' | 'fixed-term'
+                            type as 'flexible' | 'fixed-term',
+                            userName
                           )
 
                           if (result.success) {
-                            // Send notification emails
-                            const userName = `${userData.firstName} ${userData.lastName}`
                             
-                            // Send user notification
                             await sendDepositPendingEmail(
                               user.email || '',
                               userName,
@@ -732,7 +731,6 @@ export default function CryptoDetailPage() {
                               trackingPhrase
                             )
 
-                            // Send admin notifications
                             const adminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(',') || []
                             await sendAdminDepositNotification(
                               adminEmails,
@@ -744,14 +742,12 @@ export default function CryptoDetailPage() {
                               result.transactionId || ''
                             )
 
-                            // Success! Close modal and reset
                             alert('Deposit submitted successfully! You will receive an email confirmation shortly.')
                             setShowDepositModal(false)
                             setDepositStep(1)
                             setDepositAmount('')
                             setUserPhraseInput('')
                             setCryptoAmount(0)
-                            // Reload transactions
                             const txResult = await getUserTransactions(user.uid)
                             if (txResult.success) {
                               const coinTransactions = txResult.transactions.filter(
@@ -769,15 +765,20 @@ export default function CryptoDetailPage() {
                         }
                       }}
                       disabled={userPhraseInput !== trackingPhrase || submitting}
-                      className="flex-1 bg-teal-400 text-primary py-3 rounded-lg font-semibold hover:bg-teal-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                      className="flex-1 bg-teal-400 text-primary py-3 rounded-xl font-semibold hover:bg-teal-300 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
                     >
                       {submitting ? (
                         <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-primary mr-2"></div>
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary/30 border-t-primary"></div>
                           Submitting...
                         </>
                       ) : (
-                        'Deposit Sent'
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Deposit Sent
+                        </>
                       )}
                     </button>
                   </div>
@@ -790,15 +791,15 @@ export default function CryptoDetailPage() {
 
       {/* Withdraw Modal */}
       {showWithdrawModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-8 max-w-md w-full">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-medium text-white">Withdraw {coinId.toUpperCase()}</h3>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-t-2xl sm:rounded-2xl p-5 sm:p-8 w-full sm:max-w-md">
+            <div className="flex items-center justify-between mb-5 md:mb-6">
+              <h3 className="text-xl md:text-2xl font-medium text-white">Withdraw {coinId.toUpperCase()}</h3>
               <button
                 onClick={() => setShowWithdrawModal(false)}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-gray-800/50 flex-shrink-0"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>

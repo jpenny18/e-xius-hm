@@ -2,7 +2,7 @@
 
 export default function AdminSettingsPage() {
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen p-4 md:p-8">
       {/* Diagonal Teal Stripe Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-30">
         <svg
@@ -28,14 +28,14 @@ export default function AdminSettingsPage() {
 
       <div className="relative z-10 max-w-5xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-medium text-white mb-2">Admin Settings</h1>
-          <p className="text-gray-400">Configure platform settings and parameters</p>
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-medium text-white mb-1">Admin Settings</h1>
+          <p className="text-gray-400 text-sm md:text-base">Configure platform settings and parameters</p>
         </div>
 
         {/* Platform Settings */}
-        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-8 mb-6">
-          <h2 className="text-2xl font-medium text-white mb-6">Platform Configuration</h2>
+        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-5 md:p-8 mb-4 md:mb-6">
+          <h2 className="text-xl md:text-2xl font-medium text-white mb-5 md:mb-6">Platform Configuration</h2>
 
           <div className="space-y-6">
             <div>
@@ -56,7 +56,7 @@ export default function AdminSettingsPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Minimum Deposit</label>
                 <input
@@ -78,11 +78,11 @@ export default function AdminSettingsPage() {
         </div>
 
         {/* Interest Rate Settings */}
-        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-8 mb-6">
-          <h2 className="text-2xl font-medium text-white mb-6">Interest Rate Settings</h2>
+        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-5 md:p-8 mb-4 md:mb-6">
+          <h2 className="text-xl md:text-2xl font-medium text-white mb-5 md:mb-6">Interest Rate Settings</h2>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gray-800/30 border border-gray-700 rounded-lg">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gray-800/30 border border-gray-700 rounded-lg">
               <div>
                 <div className="text-white font-medium">Flexible Savings Base Rate</div>
                 <div className="text-gray-400 text-sm">Applied to all flexible savings accounts</div>
@@ -98,7 +98,7 @@ export default function AdminSettingsPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-gray-800/30 border border-gray-700 rounded-lg">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gray-800/30 border border-gray-700 rounded-lg">
               <div>
                 <div className="text-white font-medium">Fixed-Term Savings Bonus</div>
                 <div className="text-gray-400 text-sm">Additional rate for fixed-term accounts</div>
@@ -117,36 +117,36 @@ export default function AdminSettingsPage() {
         </div>
 
         {/* Security Settings */}
-        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-8 mb-6">
-          <h2 className="text-2xl font-medium text-white mb-6">Security Settings</h2>
+        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-5 md:p-8 mb-4 md:mb-6">
+          <h2 className="text-xl md:text-2xl font-medium text-white mb-5 md:mb-6">Security Settings</h2>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gray-800/30 border border-gray-700 rounded-lg">
-              <div>
+            <div className="flex items-center justify-between gap-4 p-4 bg-gray-800/30 border border-gray-700 rounded-lg">
+              <div className="min-w-0">
                 <div className="text-white font-medium">Require Email Verification</div>
                 <div className="text-gray-400 text-sm">Users must verify email before accessing platform</div>
               </div>
-              <button className="relative w-12 h-6 rounded-full bg-red-500">
+              <button className="relative flex-shrink-0 w-12 h-6 rounded-full bg-red-500">
                 <div className="absolute top-1 right-1 w-4 h-4 bg-white rounded-full"></div>
               </button>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-gray-800/30 border border-gray-700 rounded-lg">
-              <div>
+            <div className="flex items-center justify-between gap-4 p-4 bg-gray-800/30 border border-gray-700 rounded-lg">
+              <div className="min-w-0">
                 <div className="text-white font-medium">Manual Withdrawal Approval</div>
                 <div className="text-gray-400 text-sm">All withdrawals require admin approval</div>
               </div>
-              <button className="relative w-12 h-6 rounded-full bg-red-500">
+              <button className="relative flex-shrink-0 w-12 h-6 rounded-full bg-red-500">
                 <div className="absolute top-1 right-1 w-4 h-4 bg-white rounded-full"></div>
               </button>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-gray-800/30 border border-gray-700 rounded-lg">
-              <div>
+            <div className="flex items-center justify-between gap-4 p-4 bg-gray-800/30 border border-gray-700 rounded-lg">
+              <div className="min-w-0">
                 <div className="text-white font-medium">Two-Factor Authentication Required</div>
                 <div className="text-gray-400 text-sm">Enforce 2FA for all user accounts</div>
               </div>
-              <button className="relative w-12 h-6 rounded-full bg-gray-700">
+              <button className="relative flex-shrink-0 w-12 h-6 rounded-full bg-gray-700">
                 <div className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full"></div>
               </button>
             </div>
@@ -154,19 +154,19 @@ export default function AdminSettingsPage() {
         </div>
 
         {/* Email Templates */}
-        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-8 mb-6">
-          <h2 className="text-2xl font-medium text-white mb-6">Email Templates</h2>
+        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-5 md:p-8 mb-4 md:mb-6">
+          <h2 className="text-xl md:text-2xl font-medium text-white mb-5 md:mb-6">Email Templates</h2>
 
           <div className="space-y-3">
             {['Withdrawal Approved', 'Withdrawal Denied', 'Deposit Confirmed', 'Deposit Missing', 'Welcome Email'].map(
               (template) => (
                 <div
                   key={template}
-                  className="flex items-center justify-between p-4 bg-gray-800/30 border border-gray-700 rounded-lg"
+                  className="flex items-center justify-between gap-3 p-4 bg-gray-800/30 border border-gray-700 rounded-lg"
                 >
-                  <div className="text-white">{template}</div>
-                  <button className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all">
-                    Edit Template
+                  <div className="text-white text-sm md:text-base">{template}</div>
+                  <button className="flex-shrink-0 px-3 md:px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all text-sm">
+                    Edit
                   </button>
                 </div>
               )
@@ -175,11 +175,11 @@ export default function AdminSettingsPage() {
         </div>
 
         {/* Save Button */}
-        <div className="flex gap-4">
-          <button className="px-8 py-3 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition-all">
+        <div className="flex flex-wrap gap-3 md:gap-4">
+          <button className="flex-1 sm:flex-none px-6 md:px-8 py-3 bg-red-500 text-white rounded-lg font-semibold hover:bg-red-600 transition-all">
             Save All Changes
           </button>
-          <button className="px-8 py-3 bg-gray-700 text-white rounded-lg font-semibold hover:bg-gray-600 transition-all">
+          <button className="flex-1 sm:flex-none px-6 md:px-8 py-3 bg-gray-700 text-white rounded-lg font-semibold hover:bg-gray-600 transition-all">
             Cancel
           </button>
         </div>

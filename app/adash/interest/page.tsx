@@ -44,7 +44,7 @@ export default function InterestManagementPage() {
   }
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen p-4 md:p-8">
       {/* Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-30">
         <svg className="absolute w-full h-full" width="100%" height="100%" viewBox="0 0 1920 1080" fill="none" preserveAspectRatio="xMidYMid slice">
@@ -60,9 +60,9 @@ export default function InterestManagementPage() {
 
       <div className="relative z-10 max-w-4xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-medium text-white mb-2">Interest Management</h1>
-          <p className="text-gray-400">Apply daily interest to user balances</p>
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-medium text-white mb-1">Interest Management</h1>
+          <p className="text-gray-400 text-sm md:text-base">Apply daily interest to user balances</p>
         </div>
 
         {/* Warning Card */}
@@ -82,9 +82,9 @@ export default function InterestManagementPage() {
         </div>
 
         {/* Stats Card */}
-        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 mb-6">
+        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 md:p-6 mb-4 md:mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-medium text-white">Platform Statistics</h2>
+            <h2 className="text-lg md:text-xl font-medium text-white">Platform Statistics</h2>
             <button
               onClick={loadTotalInterest}
               disabled={loading}
@@ -94,7 +94,7 @@ export default function InterestManagementPage() {
             </button>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="bg-gray-800/30 border border-gray-700 rounded-xl p-4">
               <div className="text-gray-400 text-sm mb-1">Total Interest Paid</div>
               <div className="text-2xl font-medium text-teal-400">
@@ -128,8 +128,8 @@ export default function InterestManagementPage() {
         </div>
 
         {/* Action Card */}
-        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-          <h2 className="text-xl font-medium text-white mb-4">Daily Interest Application</h2>
+        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 md:p-6">
+          <h2 className="text-lg md:text-xl font-medium text-white mb-4">Daily Interest Application</h2>
           
           <div className="space-y-4">
             <div className="bg-gray-800/30 border border-gray-700 rounded-xl p-4">

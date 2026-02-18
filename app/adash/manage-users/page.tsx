@@ -1,326 +1,336 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import Image from 'next/image'
-import { useAuth } from '@/hooks/useAuth'
-import { getAllUsersWithBalances, getUserById, getUserTransactions, updateUserBalance } from '@/lib/transactions'
+import { useState } from 'react'
 
-export default function ManageUsersPage() {
-  const { user } = useAuth()
-  const [users, setUsers] = useState<any[]>([])
-  const [selectedUser, setSelectedUser] = useState<any | null>(null)
-  const [userTransactions, setUserTransactions] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadingUser, setLoadingUser] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [editingBalance, setEditingBalance] = useState<{ coin: string; savingsType: string } | null>(null)
-  const [newBalanceAmount, setNewBalanceAmount] = useState('')
-  const [newBalanceUsd, setNewBalanceUsd] = useState('')
+interface User {
+  id: number
+  name: string
+  email: string
+  accountType: 'Personal' | 'Corporate'
+  totalBalance: string
+  savingsType: 'Flexible' | 'Fixed' | 'Both'
+  joinedDate: string
+  status: 'active' | 'suspended'
+  verification: 'verified' | 'pending' | 'unverified'
+}
 
-  const coinLogos: { [key: string]: string } = {
-    BTC: '/BTC.svg',
-    ETH: '/ETH.svg',
-    XRP: '/XRP.svg',
-    BNB: '/BNB.svg',
-    USDT: '/USDT.svg',
-    TRX: '/TRX.svg',
-    USDC: '/USDC.svg',
-    SOL: '/SOL.svg',
-    LTC: '/ltc.png',
-  }
+export default function UsersPage() {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'suspended'>('all')
 
-  useEffect(() => {
-    loadUsers()
-  }, [])
+  const [users] = useState<User[]>([
+    {
+      id: 1,
+      name: 'John Doe',
+      email: 'john@example.com',
+      accountType: 'Personal',
+      totalBalance: '$91,234.56',
+      savingsType: 'Both',
+      joinedDate: '2025-08-15',
+      status: 'active',
+      verification: 'verified',
+    },
+    {
+      id: 2,
+      name: 'Jane Smith',
+      email: 'jane@example.com',
+      accountType: 'Corporate',
+      totalBalance: '$245,678.90',
+      savingsType: 'Fixed',
+      joinedDate: '2025-09-22',
+      status: 'active',
+      verification: 'verified',
+    },
+    {
+      id: 3,
+      name: 'Bob Johnson',
+      email: 'bob@example.com',
+      accountType: 'Personal',
+      totalBalance: '$45,123.45',
+      savingsType: 'Flexible',
+      joinedDate: '2025-11-03',
+      status: 'active',
+      verification: 'pending',
+    },
+    {
+      id: 4,
+      name: 'Alice Williams',
+      email: 'alice@example.com',
+      accountType: 'Personal',
+      totalBalance: '$78,456.12',
+      savingsType: 'Both',
+      joinedDate: '2026-01-10',
+      status: 'active',
+      verification: 'verified',
+    },
+    {
+      id: 5,
+      name: 'Charlie Brown',
+      email: 'charlie@example.com',
+      accountType: 'Corporate',
+      totalBalance: '$156,789.34',
+      savingsType: 'Fixed',
+      joinedDate: '2026-02-05',
+      status: 'suspended',
+      verification: 'verified',
+    },
+  ])
 
-  const loadUsers = async () => {
-    setLoading(true)
-    const result = await getAllUsersWithBalances()
-    if (result.success) {
-      setUsers(result.users)
-    }
-    setLoading(false)
-  }
-
-  const handleSelectUser = async (userId: string) => {
-    setLoadingUser(true)
-    const result = await getUserById(userId)
-    if (result.success) {
-      setSelectedUser(result.user)
-      setUserTransactions(result.transactions || [])
-    }
-    setLoadingUser(false)
-  }
-
-  const handleUpdateBalance = async () => {
-    if (!editingBalance || !selectedUser || !user?.email) return
-
-    const amount = parseFloat(newBalanceAmount)
-    const usd = parseFloat(newBalanceUsd)
-
-    if (isNaN(amount) || isNaN(usd)) {
-      alert('Please enter valid numbers')
-      return
-    }
-
-    const result = await updateUserBalance(
-      selectedUser.id,
-      editingBalance.coin,
-      editingBalance.savingsType as 'flexible' | 'fixed-term',
-      amount,
-      usd,
-      user.email
-    )
-
-    if (result.success) {
-      alert('Balance updated successfully!')
-      setEditingBalance(null)
-      setNewBalanceAmount('')
-      setNewBalanceUsd('')
-      // Reload user data
-      await handleSelectUser(selectedUser.id)
-      // Reload users list
-      await loadUsers()
-    } else {
-      alert(`Error: ${result.error}`)
-    }
-  }
-
-  const filteredUsers = users.filter(u => 
-    u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    `${u.firstName} ${u.lastName}`.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesFilter = filterStatus === 'all' || user.status === filterStatus
+    return matchesSearch && matchesFilter
+  })
 
   return (
-    <div className="min-h-screen p-8">
-      {/* Background */}
+    <div className="min-h-screen p-4 md:p-8">
+      {/* Diagonal Teal Stripe Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-30">
-        <svg className="absolute w-full h-full" width="100%" height="100%" viewBox="0 0 1920 1080" fill="none" preserveAspectRatio="xMidYMid slice">
+        <svg
+          className="absolute w-full h-full"
+          width="100%"
+          height="100%"
+          viewBox="0 0 1920 1080"
+          fill="none"
+          preserveAspectRatio="xMidYMid slice"
+        >
           <defs>
-            <linearGradient id="manageUsersGradient" x1="0" y1="1080" x2="1920" y2="0" gradientUnits="userSpaceOnUse">
+            <linearGradient id="usersGradient" x1="0" y1="1080" x2="1920" y2="0" gradientUnits="userSpaceOnUse">
               <stop stopColor="#2dd4bf" stopOpacity="0.3" />
               <stop offset="1" stopColor="#14b8a6" stopOpacity="0.5" />
             </linearGradient>
           </defs>
-          <path d="M 0,1080 Q 400,800 800,600 Q 1200,400 1600,200 Q 1760,100 1920,0 L 1920,1080 L 0,1080 Z" fill="url(#manageUsersGradient)" />
+          <path
+            d="M 0,1080 Q 400,800 800,600 Q 1200,400 1600,200 Q 1760,100 1920,0 L 1920,1080 L 0,1080 Z"
+            fill="url(#usersGradient)"
+          />
         </svg>
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-medium text-white mb-2">Manage Users</h1>
-          <p className="text-gray-400">View and manage user balances and transactions</p>
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-medium text-white mb-1">User Management</h1>
+          <p className="text-gray-400 text-sm md:text-base">View and manage platform users</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Users List */}
-          <div className="lg:col-span-1">
-            <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-              <h2 className="text-xl font-medium text-white mb-4">Users</h2>
-              
-              {/* Search */}
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
+          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 md:p-6">
+            <div className="text-gray-400 text-xs md:text-sm mb-1">Total Users</div>
+            <div className="text-white text-2xl md:text-3xl font-medium">{users.length}</div>
+          </div>
+          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 md:p-6">
+            <div className="text-gray-400 text-xs md:text-sm mb-1">Active Users</div>
+            <div className="text-white text-2xl md:text-3xl font-medium">{users.filter(u => u.status === 'active').length}</div>
+          </div>
+          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 md:p-6">
+            <div className="text-gray-400 text-xs md:text-sm mb-1">Verified</div>
+            <div className="text-white text-2xl md:text-3xl font-medium">{users.filter(u => u.verification === 'verified').length}</div>
+          </div>
+          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 md:p-6">
+            <div className="text-gray-400 text-xs md:text-sm mb-1">Total Balance</div>
+            <div className="text-white text-2xl md:text-3xl font-medium">$617K</div>
+          </div>
+        </div>
+
+        {/* Filters & Search */}
+        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 md:p-6 mb-4 md:mb-6">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1">
               <input
                 type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search users..."
-                className="w-full px-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 mb-4"
+                placeholder="Search users by name or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
               />
-
-              {/* User List */}
-              <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                {loading ? (
-                  <p className="text-gray-400 text-center py-4">Loading...</p>
-                ) : filteredUsers.length === 0 ? (
-                  <p className="text-gray-400 text-center py-4">No users found</p>
-                ) : (
-                  filteredUsers.map((u) => (
-                    <button
-                      key={u.id}
-                      onClick={() => handleSelectUser(u.id)}
-                      className={`w-full text-left p-4 rounded-lg transition-all ${
-                        selectedUser?.id === u.id
-                          ? 'bg-red-500/20 border-2 border-red-500'
-                          : 'bg-gray-800/30 border border-gray-700 hover:border-gray-600'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center text-white font-semibold">
-                          {u.firstName?.[0] || u.email[0].toUpperCase()}
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-white font-medium">
-                            {u.firstName && u.lastName ? `${u.firstName} ${u.lastName}` : 'User'}
-                          </div>
-                          <div className="text-gray-400 text-sm truncate">{u.email}</div>
-                        </div>
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
+            </div>
+            <div className="flex gap-2">
+              {(['all', 'active', 'suspended'] as const).map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setFilterStatus(status)}
+                  className={`flex-1 sm:flex-none px-3 md:px-4 py-3 rounded-lg font-medium transition-all capitalize text-sm md:text-base ${
+                    filterStatus === status
+                      ? 'bg-red-500 text-white'
+                      : 'bg-gray-800/50 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {status}
+                </button>
+              ))}
             </div>
           </div>
+        </div>
 
-          {/* User Details */}
-          <div className="lg:col-span-2">
-            {!selectedUser ? (
-              <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-12 text-center">
-                <svg className="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-                <p className="text-gray-400">Select a user to view details</p>
-              </div>
-            ) : loadingUser ? (
-              <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-12 text-center">
-                <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500 mb-4"></div>
-                <p className="text-gray-400">Loading user details...</p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {/* User Info */}
-                <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-                  <h2 className="text-xl font-medium text-white mb-4">User Information</h2>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-gray-400 text-sm">Name</div>
-                      <div className="text-white">{selectedUser.firstName} {selectedUser.lastName}</div>
-                    </div>
-                    <div>
-                      <div className="text-gray-400 text-sm">Email</div>
-                      <div className="text-white">{selectedUser.email}</div>
-                    </div>
-                    <div>
-                      <div className="text-gray-400 text-sm">Account Type</div>
-                      <div className="text-white capitalize">{selectedUser.accountType}</div>
-                    </div>
-                    <div>
-                      <div className="text-gray-400 text-sm">Joined</div>
-                      <div className="text-white">{new Date(selectedUser.createdAt).toLocaleDateString()}</div>
-                    </div>
-                  </div>
+        {/* Mobile Card View */}
+        <div className="md:hidden space-y-3 mb-4">
+          {filteredUsers.map((user) => (
+            <div
+              key={user.id}
+              className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4"
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-teal-400/10 flex items-center justify-center text-teal-400 font-semibold text-sm flex-shrink-0">
+                  {user.name.split(' ').map(n => n[0]).join('')}
                 </div>
-
-                {/* Balances */}
-                <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-medium text-white">Balances</h2>
-                  </div>
-                  
-                  {selectedUser.balances && Object.keys(selectedUser.balances).length > 0 ? (
-                    <div className="space-y-3">
-                      {Object.entries(selectedUser.balances).map(([key, balance]: [string, any]) => {
-                        const [coin, savingsType] = key.split('_')
-                        const isEditing = editingBalance?.coin === coin && editingBalance?.savingsType === savingsType
-                        
-                        return (
-                          <div key={key} className="bg-gray-800/30 border border-gray-700 rounded-xl p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <Image src={coinLogos[coin] || '/BTC.svg'} alt={coin} width={32} height={32} />
-                                <div>
-                                  <div className="text-white font-medium">{coin}</div>
-                                  <div className="text-gray-400 text-sm capitalize">{savingsType} Savings</div>
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                {isEditing ? (
-                                  <div className="space-y-2">
-                                    <input
-                                      type="number"
-                                      value={newBalanceAmount}
-                                      onChange={(e) => setNewBalanceAmount(e.target.value)}
-                                      placeholder="Amount"
-                                      className="w-full px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-                                    />
-                                    <input
-                                      type="number"
-                                      value={newBalanceUsd}
-                                      onChange={(e) => setNewBalanceUsd(e.target.value)}
-                                      placeholder="USD Value"
-                                      className="w-full px-3 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-                                    />
-                                    <div className="flex gap-2">
-                                      <button
-                                        onClick={handleUpdateBalance}
-                                        className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600"
-                                      >
-                                        Save
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          setEditingBalance(null)
-                                          setNewBalanceAmount('')
-                                          setNewBalanceUsd('')
-                                        }}
-                                        className="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700"
-                                      >
-                                        Cancel
-                                      </button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <>
-                                    <div className="text-white font-medium">${balance.usdValue.toFixed(2)}</div>
-                                    <div className="text-gray-400 text-sm">{balance.amount} {coin}</div>
-                                    <button
-                                      onClick={() => {
-                                        setEditingBalance({ coin, savingsType })
-                                        setNewBalanceAmount(balance.amount.toString())
-                                        setNewBalanceUsd(balance.usdValue.toString())
-                                      }}
-                                      className="mt-2 px-3 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600"
-                                    >
-                                      Adjust Balance
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-gray-400 text-center py-4">No balances yet</p>
-                  )}
+                <div className="flex-1 min-w-0">
+                  <div className="text-white font-medium truncate">{user.name}</div>
+                  <div className="text-gray-400 text-xs truncate">{user.email}</div>
                 </div>
+                <div className="flex gap-1.5 flex-shrink-0">
+                  <button className="p-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-all">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </button>
+                  <button className="p-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-all">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
 
-                {/* Transactions */}
-                <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-                  <h2 className="text-xl font-medium text-white mb-4">Recent Transactions</h2>
-                  
-                  {userTransactions.length > 0 ? (
-                    <div className="space-y-3">
-                      {userTransactions.map((tx) => (
-                        <div key={tx.id} className="bg-gray-800/30 border border-gray-700 rounded-xl p-4">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="text-white font-medium capitalize">{tx.type}</div>
-                              <div className="text-gray-400 text-sm">{new Date(tx.createdAt).toLocaleString()}</div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-white font-medium">${tx.usdValue.toFixed(2)}</div>
-                              <div className="text-gray-400 text-sm">{tx.coin}</div>
-                              <div className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs ${
-                                tx.status === 'confirmed' ? 'bg-green-500/20 text-green-400' :
-                                tx.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                                'bg-red-500/20 text-red-400'
-                              }`}>
-                                {tx.status}
-                              </div>
-                            </div>
-                          </div>
+              <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                <div>
+                  <div className="text-gray-500 text-xs">Account Type</div>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 mt-0.5">
+                    {user.accountType}
+                  </span>
+                </div>
+                <div>
+                  <div className="text-gray-500 text-xs">Balance</div>
+                  <div className="text-white font-medium">{user.totalBalance}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500 text-xs">Savings</div>
+                  <div className="text-gray-300">{user.savingsType}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500 text-xs">Joined</div>
+                  <div className="text-gray-300">{user.joinedDate}</div>
+                </div>
+              </div>
+
+              <div className="flex gap-1.5 flex-wrap">
+                <span
+                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                    user.status === 'active'
+                      ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                      : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                  }`}
+                >
+                  {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                </span>
+                <span
+                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                    user.verification === 'verified'
+                      ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                      : user.verification === 'pending'
+                      ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
+                      : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
+                  }`}
+                >
+                  {user.verification.charAt(0).toUpperCase() + user.verification.slice(1)}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-800/50 border-b border-gray-700">
+                <tr>
+                  <th className="text-left px-6 py-4 text-gray-400 font-medium text-sm">User</th>
+                  <th className="text-left px-6 py-4 text-gray-400 font-medium text-sm">Account Type</th>
+                  <th className="text-left px-6 py-4 text-gray-400 font-medium text-sm">Total Balance</th>
+                  <th className="text-left px-6 py-4 text-gray-400 font-medium text-sm">Savings</th>
+                  <th className="text-left px-6 py-4 text-gray-400 font-medium text-sm">Joined</th>
+                  <th className="text-left px-6 py-4 text-gray-400 font-medium text-sm">Status</th>
+                  <th className="text-left px-6 py-4 text-gray-400 font-medium text-sm">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.map((user) => (
+                  <tr
+                    key={user.id}
+                    className="border-b border-gray-700 hover:bg-gray-800/30 transition-colors"
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-teal-400/10 flex items-center justify-center text-teal-400 font-semibold flex-shrink-0">
+                          {user.name.split(' ').map(n => n[0]).join('')}
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-400 text-center py-4">No transactions yet</p>
-                  )}
-                </div>
-              </div>
-            )}
+                        <div>
+                          <div className="text-white font-medium">{user.name}</div>
+                          <div className="text-gray-400 text-sm">{user.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                        {user.accountType}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-white font-medium">{user.totalBalance}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-gray-300">{user.savingsType}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-gray-300">{user.joinedDate}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                            user.status === 'active'
+                              ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                              : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                          }`}
+                        >
+                          {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                        </span>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                            user.verification === 'verified'
+                              ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                              : user.verification === 'pending'
+                              ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
+                              : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
+                          }`}
+                        >
+                          {user.verification.charAt(0).toUpperCase() + user.verification.slice(1)}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex gap-2">
+                        <button className="p-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-all">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        </button>
+                        <button className="p-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-all">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

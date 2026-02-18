@@ -5,6 +5,7 @@ export interface Transaction {
   id?: string
   userId: string
   userEmail: string
+  userName?: string
   type: 'deposit' | 'withdrawal'
   coin: string
   network?: string
@@ -40,7 +41,8 @@ export const createDepositTransaction = async (
   usdValue: number,
   trackingPhrase: string,
   depositAddress: string,
-  savingsType: 'flexible' | 'fixed-term'
+  savingsType: 'flexible' | 'fixed-term',
+  userName?: string
 ) => {
   try {
     const transaction: any = {
@@ -56,6 +58,10 @@ export const createDepositTransaction = async (
       savingsType,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+    }
+
+    if (userName) {
+      transaction.userName = userName
     }
 
     // Only add network if it exists (Firestore doesn't allow undefined)

@@ -6,6 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { registerUser, loginUser } from '@/lib/auth'
 import { useAuth } from '@/hooks/useAuth'
+import { sendWelcomeEmail, sendAdminSignupNotification } from '@/lib/email'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -135,6 +136,18 @@ export default function LoginPage() {
 
       if (result.success) {
         setSuccess('Account created successfully! Redirecting to dashboard...')
+
+        // Fire-and-forget emails — don't block the redirect
+        const adminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(',').map(e => e.trim()).filter(Boolean) || []
+        sendWelcomeEmail(formData.email, formData.firstName).catch(console.error)
+        sendAdminSignupNotification(
+          adminEmails,
+          formData.email,
+          formData.firstName,
+          formData.lastName,
+          accountType
+        ).catch(console.error)
+
         setTimeout(() => {
           router.push('/dashboard')
         }, 1500)

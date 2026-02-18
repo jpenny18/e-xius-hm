@@ -84,7 +84,7 @@ export default function UsersPage() {
   })
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen p-4 md:p-8">
       {/* Diagonal Teal Stripe Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-30">
         <svg
@@ -110,34 +110,34 @@ export default function UsersPage() {
 
       <div className="relative z-10 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-medium text-white mb-2">User Management</h1>
-          <p className="text-gray-400">View and manage platform users</p>
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-medium text-white mb-1">User Management</h1>
+          <p className="text-gray-400 text-sm md:text-base">View and manage platform users</p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-            <div className="text-gray-400 text-sm mb-1">Total Users</div>
-            <div className="text-white text-3xl font-medium">{users.length}</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
+          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 md:p-6">
+            <div className="text-gray-400 text-xs md:text-sm mb-1">Total Users</div>
+            <div className="text-white text-2xl md:text-3xl font-medium">{users.length}</div>
           </div>
-          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-            <div className="text-gray-400 text-sm mb-1">Active Users</div>
-            <div className="text-white text-3xl font-medium">{users.filter(u => u.status === 'active').length}</div>
+          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 md:p-6">
+            <div className="text-gray-400 text-xs md:text-sm mb-1">Active Users</div>
+            <div className="text-white text-2xl md:text-3xl font-medium">{users.filter(u => u.status === 'active').length}</div>
           </div>
-          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-            <div className="text-gray-400 text-sm mb-1">Verified Users</div>
-            <div className="text-white text-3xl font-medium">{users.filter(u => u.verification === 'verified').length}</div>
+          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 md:p-6">
+            <div className="text-gray-400 text-xs md:text-sm mb-1">Verified</div>
+            <div className="text-white text-2xl md:text-3xl font-medium">{users.filter(u => u.verification === 'verified').length}</div>
           </div>
-          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-            <div className="text-gray-400 text-sm mb-1">Total Balance</div>
-            <div className="text-white text-3xl font-medium">$617K</div>
+          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 md:p-6">
+            <div className="text-gray-400 text-xs md:text-sm mb-1">Total Balance</div>
+            <div className="text-white text-2xl md:text-3xl font-medium">$617K</div>
           </div>
         </div>
 
         {/* Filters & Search */}
-        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
+        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 md:p-6 mb-4 md:mb-6">
+          <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1">
               <input
                 type="text"
@@ -148,42 +148,102 @@ export default function UsersPage() {
               />
             </div>
             <div className="flex gap-2">
-              <button
-                onClick={() => setFilterStatus('all')}
-                className={`px-4 py-3 rounded-lg font-medium transition-all ${
-                  filterStatus === 'all'
-                    ? 'bg-red-500 text-white'
-                    : 'bg-gray-800/50 text-gray-400 hover:text-white'
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setFilterStatus('active')}
-                className={`px-4 py-3 rounded-lg font-medium transition-all ${
-                  filterStatus === 'active'
-                    ? 'bg-red-500 text-white'
-                    : 'bg-gray-800/50 text-gray-400 hover:text-white'
-                }`}
-              >
-                Active
-              </button>
-              <button
-                onClick={() => setFilterStatus('suspended')}
-                className={`px-4 py-3 rounded-lg font-medium transition-all ${
-                  filterStatus === 'suspended'
-                    ? 'bg-red-500 text-white'
-                    : 'bg-gray-800/50 text-gray-400 hover:text-white'
-                }`}
-              >
-                Suspended
-              </button>
+              {(['all', 'active', 'suspended'] as const).map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setFilterStatus(status)}
+                  className={`flex-1 sm:flex-none px-3 md:px-4 py-3 rounded-lg font-medium transition-all capitalize text-sm md:text-base ${
+                    filterStatus === status
+                      ? 'bg-red-500 text-white'
+                      : 'bg-gray-800/50 text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {status}
+                </button>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Users Table */}
-        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl overflow-hidden">
+        {/* Mobile Card View */}
+        <div className="md:hidden space-y-3 mb-4">
+          {filteredUsers.map((user) => (
+            <div
+              key={user.id}
+              className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4"
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-teal-400/10 flex items-center justify-center text-teal-400 font-semibold text-sm flex-shrink-0">
+                  {user.name.split(' ').map(n => n[0]).join('')}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-white font-medium truncate">{user.name}</div>
+                  <div className="text-gray-400 text-xs truncate">{user.email}</div>
+                </div>
+                <div className="flex gap-1.5 flex-shrink-0">
+                  <button className="p-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-all">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </button>
+                  <button className="p-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-all">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                <div>
+                  <div className="text-gray-500 text-xs">Account Type</div>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 mt-0.5">
+                    {user.accountType}
+                  </span>
+                </div>
+                <div>
+                  <div className="text-gray-500 text-xs">Balance</div>
+                  <div className="text-white font-medium">{user.totalBalance}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500 text-xs">Savings</div>
+                  <div className="text-gray-300">{user.savingsType}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500 text-xs">Joined</div>
+                  <div className="text-gray-300">{user.joinedDate}</div>
+                </div>
+              </div>
+
+              <div className="flex gap-1.5 flex-wrap">
+                <span
+                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                    user.status === 'active'
+                      ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                      : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                  }`}
+                >
+                  {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                </span>
+                <span
+                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                    user.verification === 'verified'
+                      ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                      : user.verification === 'pending'
+                      ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
+                      : 'bg-gray-500/10 text-gray-400 border border-gray-500/20'
+                  }`}
+                >
+                  {user.verification.charAt(0).toUpperCase() + user.verification.slice(1)}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-800/50 border-b border-gray-700">
@@ -205,7 +265,7 @@ export default function UsersPage() {
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-teal-400/10 flex items-center justify-center text-teal-400 font-semibold">
+                        <div className="w-10 h-10 rounded-full bg-teal-400/10 flex items-center justify-center text-teal-400 font-semibold flex-shrink-0">
                           {user.name.split(' ').map(n => n[0]).join('')}
                         </div>
                         <div>
@@ -256,28 +316,13 @@ export default function UsersPage() {
                       <div className="flex gap-2">
                         <button className="p-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-all">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                            />
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                            />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
                         </button>
                         <button className="p-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-all">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                            />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </svg>
                         </button>
                       </div>

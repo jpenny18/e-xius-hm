@@ -6,12 +6,14 @@ import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
 import { getMultiplePrices } from '@/lib/prices'
 import { getUserTransactions } from '@/lib/transactions'
+import { getAPY } from '@/lib/interest'
 
 export default function DashboardPage() {
   const { user, userData } = useAuth()
   const [activeTab, setActiveTab] = useState<'flexible' | 'fixed'>('flexible')
   const [totalBalance, setTotalBalance] = useState(0)
   const [totalEarnings, setTotalEarnings] = useState(0)
+  const [dailyEarnings, setDailyEarnings] = useState(0)
   const [loadingBalances, setLoadingBalances] = useState(true)
   const [userTransactions, setUserTransactions] = useState<any[]>([])
   const [loadingTransactions, setLoadingTransactions] = useState(true)
@@ -24,24 +26,27 @@ export default function DashboardPage() {
         return
       }
 
-      let flexibleTotal = 0
-      let fixedTotal = 0
+      let balanceTotal = 0
       let earningsTotal = 0
+      let dailyTotal = 0
 
       Object.entries(userData.balances).forEach(([key, balance]: [string, any]) => {
-        const [coin, savingsType] = key.split('_')
-        
-        if (savingsType === 'flexible') {
-          flexibleTotal += balance.usdValue || 0
-        } else {
-          fixedTotal += balance.usdValue || 0
-        }
-        
+        const parts = key.split('_')
+        const coin = parts[0]
+        const savingsType = parts.slice(1).join('_') as 'flexible' | 'fixed-term'
+        const usdValue = balance.usdValue || 0
+
+        balanceTotal += usdValue
         earningsTotal += balance.totalEarned || 0
+
+        // Calculate true daily interest for this balance using its actual APR
+        const apy = getAPY(coin, savingsType)
+        dailyTotal += usdValue * apy / 100 / 365
       })
 
-      setTotalBalance(flexibleTotal + fixedTotal)
+      setTotalBalance(balanceTotal)
       setTotalEarnings(earningsTotal)
+      setDailyEarnings(dailyTotal)
       setLoadingBalances(false)
     }
 
@@ -56,7 +61,6 @@ export default function DashboardPage() {
       setLoadingTransactions(true)
       const result = await getUserTransactions(user.uid)
       if (result.success) {
-        // Get most recent 10 transactions
         setUserTransactions(result.transactions.slice(0, 10))
       }
       setLoadingTransactions(false)
@@ -116,7 +120,7 @@ export default function DashboardPage() {
   const rates = activeTab === 'flexible' ? flexibleRates : fixedRates
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen p-4 md:p-8">
       {/* Diagonal Teal Stripe Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-30">
         <svg
@@ -142,14 +146,14 @@ export default function DashboardPage() {
 
       <div className="relative z-10 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-medium text-white mb-2">Dashboard</h1>
-          <p className="text-gray-400">Manage your crypto savings and earnings</p>
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-medium text-white mb-1">Dashboard</h1>
+          <p className="text-gray-400 text-sm md:text-base">Manage your crypto savings and earnings</p>
         </div>
 
         {/* Balance Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6 mb-6 md:mb-8">
+          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 md:p-6">
             <div className="flex items-center justify-between mb-2">
               <span className="text-gray-400 text-sm">Total Balance</span>
               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -162,22 +166,22 @@ export default function DashboardPage() {
                 />
               </svg>
             </div>
-            <div className="text-3xl font-medium text-white">{totalBalance}</div>
+            <div className="text-2xl md:text-3xl font-medium text-white">${totalBalance.toFixed(2)}</div>
           </div>
 
-          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 md:p-6">
             <div className="flex items-center justify-between mb-2">
               <span className="text-gray-400 text-sm">Daily Earnings</span>
               <svg className="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
             </div>
-            <div className="text-3xl font-medium text-teal-400">
-              {loadingBalances ? '...' : `+$${(totalBalance * 0.12 / 365).toFixed(2)}`}
+            <div className="text-2xl md:text-3xl font-medium text-teal-400">
+              {loadingBalances ? '...' : `+$${dailyEarnings.toFixed(2)}`}
             </div>
           </div>
 
-          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
+          <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 md:p-6">
             <div className="flex items-center justify-between mb-2">
               <span className="text-gray-400 text-sm">Active Savings</span>
               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -189,65 +193,65 @@ export default function DashboardPage() {
                 />
               </svg>
             </div>
-            <div className="text-3xl font-medium text-white">
+            <div className="text-2xl md:text-3xl font-medium text-white">
               {activeTab === 'flexible' ? 'Flexible' : 'Fixed'}
             </div>
           </div>
         </div>
 
         {/* Savings Type Tabs */}
-        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6 mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-medium text-white">Your Savings</h2>
+        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 md:p-6 mb-6 md:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <h2 className="text-xl md:text-2xl font-medium text-white">Your Savings</h2>
             <div className="flex gap-2 bg-gray-800/50 p-1 rounded-lg">
               <button
                 onClick={() => setActiveTab('flexible')}
-                className={`px-6 py-2 rounded-lg font-medium transition-all ${
+                className={`flex-1 sm:flex-none px-3 sm:px-6 py-2 rounded-lg font-medium transition-all text-sm md:text-base ${
                   activeTab === 'flexible'
                     ? 'bg-teal-400 text-primary'
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
-                Flexible Savings
+                Flexible
               </button>
               <button
                 onClick={() => setActiveTab('fixed')}
-                className={`px-6 py-2 rounded-lg font-medium transition-all ${
+                className={`flex-1 sm:flex-none px-3 sm:px-6 py-2 rounded-lg font-medium transition-all text-sm md:text-base ${
                   activeTab === 'fixed'
                     ? 'bg-teal-400 text-primary'
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
-                Fixed-Term Savings
+                Fixed-Term
               </button>
             </div>
           </div>
 
           {/* Crypto Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
             {Object.entries(rates).map(([coin, rate]) => (
               <Link
                 key={coin}
                 href={`/dashboard/crypto/${coin.toLowerCase()}?type=${activeTab}`}
-                className="bg-gray-800/50 border border-gray-700 rounded-xl p-6 hover:border-teal-400 transition-all cursor-pointer group"
+                className="bg-gray-800/50 border border-gray-700 rounded-xl p-4 md:p-6 hover:border-teal-400 transition-all cursor-pointer group active:scale-95"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 relative">
+                <div className="flex items-center justify-between mb-3 md:mb-4">
+                  <div className="w-9 h-9 md:w-12 md:h-12 relative">
                     <Image
                       src={coinLogos[coin]}
                       alt={coin}
                       width={48}
                       height={48}
-                      className="object-contain"
+                      className="object-contain w-full h-full"
                     />
                   </div>
-                  <div className="text-teal-400 text-xl font-medium">{rate}%</div>
+                  <div className="text-teal-400 text-lg md:text-xl font-medium">{rate}%</div>
                 </div>
-                <div className="text-white font-medium text-lg mb-1">{coin}</div>
-                <div className="text-gray-400 text-sm">{coinNames[coin]}</div>
-                <div className="mt-4 flex items-center text-sm text-gray-400 group-hover:text-teal-400 transition-colors">
+                <div className="text-white font-medium text-base md:text-lg mb-0.5">{coin}</div>
+                <div className="text-gray-400 text-xs md:text-sm truncate">{coinNames[coin]}</div>
+                <div className="mt-3 md:mt-4 flex items-center text-xs md:text-sm text-gray-400 group-hover:text-teal-400 transition-colors">
                   <span>View details</span>
-                  <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3 md:w-4 md:h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </div>
@@ -257,9 +261,9 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Transactions */}
-        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-medium text-white">Recent Transactions</h3>
+        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 md:p-6">
+          <div className="flex items-center justify-between mb-4 md:mb-6">
+            <h3 className="text-lg md:text-xl font-medium text-white">Recent Transactions</h3>
             <div className="flex items-center gap-2">
               <div className={`px-3 py-1 rounded-full text-xs font-medium ${
                 userTransactions.filter(t => t.status === 'pending').length > 0
@@ -279,7 +283,7 @@ export default function DashboardPage() {
               </div>
             ) : userTransactions.length === 0 ? (
               <div className="text-center py-8">
-                <svg className="w-16 h-16 text-gray-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-14 h-14 md:w-16 md:h-16 text-gray-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
                 <p className="text-gray-400 mb-1">No transactions yet</p>
@@ -289,51 +293,50 @@ export default function DashboardPage() {
               userTransactions.map((tx) => (
                 <div
                   key={tx.id}
-                  className="flex items-center justify-between p-4 bg-gray-800/30 border border-gray-700 rounded-xl hover:border-gray-600 transition-colors"
+                  className="flex items-center justify-between p-3 md:p-4 bg-gray-800/30 border border-gray-700 rounded-xl hover:border-gray-600 transition-colors"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 relative flex-shrink-0">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 md:w-10 md:h-10 relative flex-shrink-0">
                       <Image
                         src={coinLogos[tx.coin] || '/BTC.svg'}
                         alt={tx.coin}
                         width={40}
                         height={40}
-                        className="object-contain"
+                        className="object-contain w-full h-full"
                       />
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <div className="text-white font-medium capitalize">{tx.type}</div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <div className="text-white font-medium capitalize text-sm md:text-base">{tx.type}</div>
                         {tx.status === 'pending' && (
-                          <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full">
+                          <span className="px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full">
                             Pending
                           </span>
                         )}
                         {tx.status === 'confirmed' && (
-                          <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full">
+                          <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full">
                             Confirmed
                           </span>
                         )}
                         {tx.status === 'rejected' && (
-                          <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full">
+                          <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full">
                             Rejected
                           </span>
                         )}
                       </div>
-                      <div className="text-gray-400 text-sm">
-                        {new Date(tx.createdAt).toLocaleDateString()} at {new Date(tx.createdAt).toLocaleTimeString()}
+                      <div className="text-gray-400 text-xs truncate">
+                        {new Date(tx.createdAt).toLocaleDateString()}
                       </div>
-                      <div className="text-gray-500 text-xs mt-1">
-                        {tx.coin} • {tx.savingsType === 'flexible' ? 'Flexible' : 'Fixed-Term'}
-                        {tx.network && ` • ${tx.network}`}
+                      <div className="text-gray-500 text-xs mt-0.5 truncate">
+                        {tx.coin} • {tx.savingsType === 'flexible' ? 'Flexible' : 'Fixed'}
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-white text-lg font-medium">
+                  <div className="text-right flex-shrink-0 ml-2">
+                    <div className="text-white text-base md:text-lg font-medium">
                       ${tx.usdValue.toFixed(2)}
                     </div>
-                    <div className="text-gray-400 text-sm">{tx.coin}</div>
+                    <div className="text-gray-400 text-xs">{tx.coin}</div>
                   </div>
                 </div>
               ))

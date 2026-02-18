@@ -51,7 +51,7 @@ export default function TransactionsPage() {
         // Send confirmation email to user
         await sendDepositConfirmedEmail(
           transaction.userEmail,
-          transaction.userEmail.split('@')[0], // Simple name extraction
+          transaction.userName || transaction.userEmail.split('@')[0],
           transaction.coin,
           transaction.usdValue,
           getAPY(transaction.coin, transaction.savingsType),
@@ -86,7 +86,7 @@ export default function TransactionsPage() {
         // Send rejection email to user
         await sendDepositRejectedEmail(
           transaction.userEmail,
-          transaction.userEmail.split('@')[0],
+          transaction.userName || transaction.userEmail.split('@')[0],
           transaction.coin,
           transaction.usdValue,
           reason
@@ -116,7 +116,7 @@ export default function TransactionsPage() {
   }
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen p-4 md:p-8">
       {/* Diagonal Teal Stripe Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-30">
         <svg
@@ -142,14 +142,14 @@ export default function TransactionsPage() {
 
       <div className="relative z-10 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-medium text-white mb-2">Transaction Management</h1>
-          <p className="text-gray-400">Review and manage user deposits and withdrawals</p>
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-medium text-white mb-1">Transaction Management</h1>
+          <p className="text-gray-400 text-sm md:text-base">Review and manage user deposits and withdrawals</p>
         </div>
 
         {/* Tabs */}
-        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-6">
-          <div className="flex gap-2 bg-gray-800/50 p-1 rounded-lg mb-6">
+        <div className="bg-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-4 md:p-6">
+          <div className="flex gap-2 bg-gray-800/50 p-1 rounded-lg mb-5 md:mb-6">
             <button
               onClick={() => setActiveTab('withdrawals')}
               className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all ${
@@ -229,9 +229,9 @@ export default function TransactionsPage() {
                       </div>
 
                       {/* Status & Actions */}
-                      <div className="flex flex-col gap-2 min-w-[200px]">
+                      <div className="flex flex-row lg:flex-col gap-2 items-center lg:items-stretch lg:min-w-[180px]">
                         <div
-                          className={`px-3 py-1 rounded-full text-xs font-medium text-center ${
+                          className={`flex-1 lg:flex-none px-3 py-1 rounded-full text-xs font-medium text-center ${
                             withdrawal.status === 'pending'
                               ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
                               : withdrawal.status === 'confirmed'
@@ -335,9 +335,9 @@ export default function TransactionsPage() {
                       </div>
 
                       {/* Status & Actions */}
-                      <div className="flex flex-col gap-2 min-w-[200px]">
+                      <div className="flex flex-row lg:flex-col gap-2 items-center lg:items-stretch lg:min-w-[180px]">
                         <div
-                          className={`px-3 py-1 rounded-full text-xs font-medium text-center ${
+                          className={`flex-1 lg:flex-none px-3 py-1 rounded-full text-xs font-medium text-center ${
                             deposit.status === 'pending'
                               ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
                               : deposit.status === 'confirmed'
